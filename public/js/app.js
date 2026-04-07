@@ -22,7 +22,7 @@ const SK={KWS:'ajs_kws',SEL_KW:'ajs_sel_kw',MATCH_MODE:'ajs_match_mode',API_KEYS
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
 const load=(k,fb)=>{try{const r=localStorage.getItem(k);return r===null?fb:JSON.parse(r);}catch(e){return fb;}};
 
-const CONFIG={adminPassword:'gkdlxpzj!',superPassword:'dlalswl',apiKeys:{saramin:'',worknet:''}};
+const CONFIG={apiKeys:{saramin:'',worknet:''}};
 const DEFAULT_KWS=['데이터 사이언티스트','데이터 분석','데이터 엔지니어','AI 엔지니어','머신러닝','딥러닝','LLM','헬스케어','의료데이터','EMR','임상데이터','Python','SQL','Spark','MLOps','백엔드 개발','추천시스템','자연어처리'];
 let KWS=load(SK.KWS,DEFAULT_KWS);
 
@@ -45,6 +45,9 @@ let matchMode=load(SK.MATCH_MODE,'any');
 let globalSearchQ='';
 let salaryMinFilter=0;
 let jmTabFilter='all';
+let jmDateFrom=''; // 마감일 시작 필터
+let jmDateTo='';   // 마감일 종료 필터
+let selectedIds=new Set(); // 크로스 페이지 선택 (job id 기준)
 let urgentFilter=false;
 let closedFilter=false;
 let currentPage=1;  // 메인화면 페이지
@@ -285,16 +288,34 @@ function setMatchMode(m){matchMode=m;save(SK.MATCH_MODE,m);currentPage=1;initKwT
 
 /* ── 드롭다운 초기화 ── */
 function initDropdowns(){
-  const fill=(id,vals)=>{
+  // 빈도순 정렬 후 상위 N개만, 긴 텍스트는 잘라서 표시
+  const fillFreq=(id, vals, maxItems=30, maxLen=20)=>{
     const el=document.getElementById(id);
     const cur=el.value;
-    const unique=[...new Set(vals)].sort();
+    // 빈도 집계
+    const freq={};
+    vals.forEach(v=>{if(v&&v!=='미정')freq[v]=(freq[v]||0)+1;});
+    // 빈도 내림차순 정렬 후 상위 maxItems개
+    const sorted=Object.entries(freq)
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,maxItems)
+      .map(([v])=>v)
+      .sort(); // 가나다 재정렬
+    const truncate=v=>v.length>maxLen?v.slice(0,maxLen)+'…':v;
+    el.innerHTML='<option value="">전체</option>'+
+      sorted.map(v=>`<option value="${v}">${truncate(v)}</option>`).join('');
+    el.value=sorted.includes(cur)?cur:'';
+  };
+  const fillSimple=(id,vals)=>{
+    const el=document.getElementById(id);
+    const cur=el.value;
+    const unique=[...new Set(vals.filter(v=>v&&v!=='미정'))].sort();
     el.innerHTML='<option value="">전체</option>'+unique.map(v=>`<option value="${v}">${v}</option>`).join('');
     el.value=unique.includes(cur)?cur:'';
   };
-  fill('fj',JOBS.map(j=>j.role));
-  fill('fi',JOBS.map(j=>j.industry));
-  fill('floc',JOBS.map(j=>j.location));
+  fillFreq('fj', JOBS.map(j=>j.role));
+  fillFreq('fi', JOBS.map(j=>j.industry));
+  fillSimple('floc', JOBS.map(j=>j.location));
 }
 
 /* ── 필터링 ── */
@@ -673,6 +694,46 @@ function setJmTab(tab){
   });
   renderCustomJobList();
 }
+function applyJmDateFilter(){
+  jmDateFrom=document.getElementById('jmDateFrom')?.value||'';
+  jmDateTo=document.getElementById('jmDateTo')?.value||'';
+  jmPage=1;
+  renderCustomJobList();
+}
+function resetJmDateFilter(){
+  jmDateFrom=''; jmDateTo='';
+  const f=document.getElementById('jmDateFrom');
+  const t=document.getElementById('jmDateTo');
+  if(f)f.value=''; if(t)t.value='';
+  jmPage=1;
+  renderCustomJobList();
+}
+function resetJmDetailFilter(){
+  ['jmFRole','jmFJobType','jmFExp','jmFScale','jmFLoc'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.value='';
+  });
+  jmPage=1;
+  renderCustomJobList();
+}
+function initJmDetailFilter(){
+  // 직무 드롭다운 동적 생성
+  const roles=[...new Set(CUSTOM_JOBS.map(j=>j.role).filter(v=>v&&v!=='미정'))].sort();
+  const roleEl=document.getElementById('jmFRole');
+  if(roleEl){
+    const cur=roleEl.value;
+    roleEl.innerHTML='<option value="">전체</option>'+roles.map(v=>`<option value="${v}">${v.length>18?v.slice(0,18)+'…':v}</option>`).join('');
+    if(roles.includes(cur))roleEl.value=cur;
+  }
+  // 지역 드롭다운 동적 생성
+  const locs=[...new Set(CUSTOM_JOBS.map(j=>j.location).filter(v=>v&&v!=='미정'))].sort();
+  const locEl=document.getElementById('jmFLoc');
+  if(locEl){
+    const cur=locEl.value;
+    locEl.innerHTML='<option value="">전국</option>'+locs.map(v=>`<option value="${v}">${v}</option>`).join('');
+    if(locs.includes(cur))locEl.value=cur;
+  }
+}
 
 /* ── 필터 접기/펼치기 ── */
 function toggleFilter(){
@@ -691,25 +752,38 @@ let dynamicApis=load(SK.DYN_APIS,[
 let tempKws=[];
 
 function openLogin(){
+  document.getElementById('loginEmail').value='';
   document.getElementById('pwIn').value='';
   document.getElementById('pwErr').style.display='none';
+  document.getElementById('loginBtn').disabled=false;
+  document.getElementById('loginBtn').textContent='로그인';
+  document.getElementById('pwEyeOff').style.display='';
+  document.getElementById('pwEyeOn').style.display='none';
+  document.getElementById('pwIn').type='password';
   document.getElementById('loginModal').classList.add('open');
-  setTimeout(()=>document.getElementById('pwIn').focus(),100);
+  setTimeout(()=>document.getElementById('loginEmail').focus(),100);
 }
 function closeLogin(){document.getElementById('loginModal').classList.remove('open');}
-function tryLogin(){
+async function tryLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
   const pw=document.getElementById('pwIn').value;
-  if(pw===CONFIG.superPassword){
+  const errEl=document.getElementById('pwErr');
+  const btn=document.getElementById('loginBtn');
+  if(!email||!pw){errEl.textContent='이메일과 비밀번호를 입력하세요.';errEl.style.display='block';return;}
+  if(!window._fb?.signIn){errEl.textContent='Firebase 초기화 중입니다. 잠시 후 다시 시도해주세요.';errEl.style.display='block';return;}
+  btn.disabled=true; btn.textContent='로그인 중…';
+  errEl.style.display='none';
+  try{
+    const role = await window._fb.signIn(email, pw);
+    isSuperMode = (role==='super');
     closeLogin();
-    isSuperMode=true;
     openAdmin();
-  } else if(pw===CONFIG.adminPassword){
-    closeLogin();
-    isSuperMode=false;
-    openAdmin();
-  } else {
-    document.getElementById('pwErr').style.display='block';
-    document.getElementById('pwIn').select();
+  } catch(e) {
+    let msg='이메일 또는 비밀번호가 올바르지 않습니다.';
+    if(e.message==='접근 권한이 없는 계정입니다.') msg='관리자 권한이 없는 계정입니다.';
+    errEl.textContent=msg;
+    errEl.style.display='block';
+    btn.disabled=false; btn.textContent='로그인';
   }
 }
 function openAdmin(){
@@ -734,7 +808,11 @@ function openAdmin(){
   }
   document.getElementById('adminModal').classList.add('open');
 }
-function closeAdmin(){document.getElementById('adminModal').classList.remove('open');isSuperMode=false;}
+function closeAdmin(){
+  document.getElementById('adminModal').classList.remove('open');
+  isSuperMode=false;
+  window._fb?.signOut?.();
+}
 
 function switchAdminTab(tab){
   // jk 패널은 이제 adminPanelApi 안에 내장되어 있으므로 독립 패널 없이 처리
@@ -906,24 +984,48 @@ function renderCustomJobList(){
   const countLabel=document.getElementById('jmCountLabel');
   if(!grid)return;
 
-  // 검색어 + 탭 필터 적용
+  // 검색어 + 탭 + 날짜 + 세부 필터 적용
   const q=(document.getElementById('jmSearch')?.value||'').trim().toLowerCase();
   const tab=jmTabFilter||'all';
+  const dateFrom=jmDateFrom?new Date(jmDateFrom):null;
+  const dateTo=jmDateTo?new Date(jmDateTo):null;
+  if(dateTo) dateTo.setHours(23,59,59,999);
+  const fRole    =(document.getElementById('jmFRole')?.value||'');
+  const fJobType =(document.getElementById('jmFJobType')?.value||'');
+  const fExp     =(document.getElementById('jmFExp')?.value||'');
+  const fScale   =(document.getElementById('jmFScale')?.value||'');
+  const fLoc     =(document.getElementById('jmFLoc')?.value||'');
 
   const filtered=CUSTOM_JOBS.map((j,i)=>({j,i})).filter(({j})=>{
-    // 탭 필터
     const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
     const expired=!isSpecial&&dday(j.deadline)<0;
     const isClosed=j.closed||expired;
     if(tab==='active'&&isClosed)return false;
     if(tab==='closed'&&!isClosed)return false;
-    // 검색 필터
+    if((dateFrom||dateTo)&&!isSpecial&&j.deadline){
+      const dl=new Date(j.deadline);
+      if(dateFrom&&dl<dateFrom)return false;
+      if(dateTo&&dl>dateTo)return false;
+    }
+    if(fRole     && j.role!==fRole)return false;
+    if(fJobType  && j.jobType!==fJobType)return false;
+    if(fScale    && j.scale!==fScale)return false;
+    if(fLoc      && j.location!==fLoc)return false;
+    if(fExp){
+      const b=expBadge(j.experience);
+      if(fExp==='신입'&&b!=='신입')return false;
+      if(fExp==='신입·경력'&&b!=='신입·경력')return false;
+      if(fExp==='경력'&&b!=='경력')return false;
+    }
     if(q){
       const txt=`${j.title} ${j.company} ${j.role||''} ${j.industry||''} ${j.location||''}`.toLowerCase();
       if(!txt.includes(q))return false;
     }
     return true;
   });
+
+  // 직무·지역 드롭다운 동적 갱신
+  initJmDetailFilter();
 
   if(!CUSTOM_JOBS.length){
     grid.innerHTML='';
@@ -961,7 +1063,7 @@ function renderCustomJobList(){
     else if(isUntil)ddayBadge=`<span class="jm-badge navy">채용시 마감</span>`;
     else if(expired)ddayBadge=`<span class="jm-badge closed">만료 (${j.deadline})</span>`;
     else ddayBadge=`<span class="jm-badge ${urg?'urgent':''}">D-${d} (${j.deadline})</span>`;
-    return `<div class="jm-jcard ${j.closed||expired?'closed-job':''} select-mode" data-idx="${i}" style="animation-delay:${paged.indexOf(paged.find(f=>f.i===i))*0.03}s">
+    return `<div class="jm-jcard ${j.closed||expired?'closed-job':''} select-mode ${selectedIds.has(String(j.id))?'selected':''}" data-id="${j.id}" style="animation-delay:${paged.indexOf(paged.find(f=>f.i===i))*0.03}s">
       <div class="jm-jcard-top">
         <div class="jm-jcard-left">
           <div class="jm-jcard-icon" style="background:${cs.bg};color:${cs.color}">${cs.icon}</div>
@@ -973,7 +1075,7 @@ function renderCustomJobList(){
         <div class="jm-jcard-actions">
           ${j.deadlineType==='untilFilled'?`<button class="btn-jm-close ${j.closed?'closed':''}" onclick="toggleJobClosed(${i})">${j.closed?'✓ 마감됨':'마감처리'}</button>`:''}
           <button class="btn-jm-edit" onclick="openJobForm(${i})">✏ 수정</button>
-          <input type="checkbox" class="jm-card-check" data-idx="${i}" onchange="onCardCheck(this)" title="선택">
+          <input type="checkbox" class="jm-card-check" data-id="${j.id}" ${selectedIds.has(String(j.id))?'checked':''} onchange="onCardCheck(this,'${j.id}')" title="선택">
         </div>
       </div>
       <div class="jm-jcard-meta">
@@ -991,26 +1093,30 @@ function renderCustomJobList(){
 }
 
 /* ── 일괄 선택/삭제 ── */
-function getCheckedIdxs(){
-  return [...document.querySelectorAll('.jm-card-check:checked')].map(el=>parseInt(el.dataset.idx));
-}
 function updateBulkBar(){
-  const checked=getCheckedIdxs();
   const total=CUSTOM_JOBS.length;
-  const allChecked=checked.length===total&&total>0;
   const allCheckEl=document.getElementById('jmCheckAll');
   const numEl=document.getElementById('jmSelectedNum');
   const delBtn=document.getElementById('jmBulkDelBtn');
-  if(allCheckEl){allCheckEl.checked=allChecked;allCheckEl.indeterminate=checked.length>0&&!allChecked;}
-  if(numEl)numEl.textContent=checked.length;
-  if(delBtn)delBtn.disabled=checked.length===0;
+  const cnt=selectedIds.size;
+  if(allCheckEl){allCheckEl.checked=cnt===total&&total>0;allCheckEl.indeterminate=cnt>0&&cnt<total;}
+  if(numEl)numEl.textContent=cnt;
+  if(delBtn)delBtn.disabled=cnt===0;
 }
-function onCardCheck(cb){
+function onCardCheck(cb, jobId){
+  const id=String(jobId);
+  if(cb.checked)selectedIds.add(id); else selectedIds.delete(id);
   const card=cb.closest('.jm-jcard');
   if(card)card.classList.toggle('selected',cb.checked);
   updateBulkBar();
 }
 function toggleSelectAll(checked){
+  if(checked){
+    CUSTOM_JOBS.forEach(j=>selectedIds.add(String(j.id)));
+  } else {
+    selectedIds.clear();
+  }
+  // 현재 페이지 체크박스 UI 갱신
   document.querySelectorAll('.jm-card-check').forEach(cb=>{
     cb.checked=checked;
     const card=cb.closest('.jm-jcard');
@@ -1019,16 +1125,16 @@ function toggleSelectAll(checked){
   updateBulkBar();
 }
 async function deleteSelected(){
-  const idxs=getCheckedIdxs();
-  if(!idxs.length)return;
-  if(!confirm(`선택한 공고 ${idxs.length}개를 삭제하시겠습니까?`))return;
-  const jobIds=idxs.map(i=>CUSTOM_JOBS[i].id);
-  await Promise.all(jobIds.map(id=>window._fb?.delete(id)));
-  // onSnapshot이 자동 갱신
+  if(!selectedIds.size)return;
+  if(!confirm(`선택한 공고 ${selectedIds.size}개를 삭제하시겠습니까?`))return;
+  const ids=[...selectedIds];
+  selectedIds.clear();
+  await Promise.all(ids.map(id=>window._fb?.delete(id)));
 }
 
 function openJobManager(){
   closeAdmin();
+  selectedIds.clear();
   document.getElementById('jobManagerOverlay').classList.add('open');
   document.body.style.overflow='hidden';
   renderCustomJobList();
@@ -1726,7 +1832,7 @@ initFirebase(); // Firestore 실시간 구독 시작
 })();
 
 (function(){
-  const jmEl  = document.getElementById('jobManagerPage');
+  const jmEl  = document.querySelector('.jm-body');
   const btnTop = document.getElementById('jmFabScrollTop');
   const btnBot = document.getElementById('jmFabScrollBot');
   if(!jmEl||!btnTop||!btnBot) return;
@@ -1735,8 +1841,8 @@ initFirebase(); // Firestore 실시간 구독 시작
   jmEl.addEventListener('scroll', function(){
     const scrolled = jmEl.scrollTop;
     const maxScroll = jmEl.scrollHeight - jmEl.clientHeight;
-    if(scrolled > 300) showFab(btnTop); else hideFab(btnTop);
-    if(scrolled < maxScroll - 300) showFab(btnBot); else hideFab(btnBot);
+    if(scrolled > 200) showFab(btnTop); else hideFab(btnTop);
+    if(scrolled < maxScroll - 200) showFab(btnBot); else hideFab(btnBot);
   }, {passive:true});
 })();
 

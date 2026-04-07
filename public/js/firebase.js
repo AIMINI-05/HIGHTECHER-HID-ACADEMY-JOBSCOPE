@@ -1,9 +1,8 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-// config.js(gitignore 처리)에서 Firebase 설정을 읽습니다.
-// config.js가 없으면 콘솔에 안내를 출력합니다.
 const cfg = window.APP_CONFIG?.firebase;
 if (!cfg?.apiKey) {
   console.error(
@@ -22,12 +21,36 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const db  = getFirestore(app);
+const auth = getAuth(app);
 const JOBS_COL = collection(db, "custom_jobs");
 
-// Firestore → 전역 노출
+// ── 역할 정의 (UID 기반) ──
+const ROLE_MAP = {
+  'GyV6ab0C1WNzisupvgJtrNSlXht2': 'admin',  // hi-d@learners-hi.com
+  'JEgfNRxfkKYhZcGuqF2eajPeQrf2': 'super',  // sallyminji@gmail.com
+};
+
+// Firestore + Auth → 전역 노출
 window._fb = {
-  // 전체 공고 실시간 구독
+  // ── Auth ──
+  signIn: async (email, password) => {
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    const uid  = cred.user.uid;
+    const role = ROLE_MAP[uid] || null;
+    if (!role) {
+      await signOut(auth);
+      throw new Error('접근 권한이 없는 계정입니다.');
+    }
+    return role; // 'admin' | 'super'
+  },
+  signOut: async () => {
+    await signOut(auth);
+  },
+  currentRole: () => {
+    const uid = auth.currentUser?.uid;
+    return uid ? (ROLE_MAP[uid] || null) : null;
+  },
   subscribe: (cb) => {
     return onSnapshot(JOBS_COL, (snap) => {
       const jobs = snap.docs.map(d => ({...d.data(), _docId: d.id}));

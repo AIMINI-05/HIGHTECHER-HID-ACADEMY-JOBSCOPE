@@ -122,7 +122,7 @@ body.dark .stat-box .lbl{color:rgba(144,149,176,0.7)}
 /* ── 필터 바 ── */
 .filter-toggle-btn{display:none}
 .fg label{font-size:11px;color:var(--text-hint);display:block;margin-bottom:5px;font-weight:500;letter-spacing:0.5px;text-transform:uppercase}
-.fg select{width:100%;font-size:13px;padding:8px 28px 8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-family:inherit;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555A78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.15s}
+.fg select{width:100%;max-width:100%;font-size:13px;padding:8px 28px 8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-card);color:var(--text-primary);cursor:pointer;font-family:inherit;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555A78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;transition:border-color 0.15s;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fg select:focus{outline:none;border-color:var(--navy-light)}
 
 
@@ -376,7 +376,7 @@ body.dark .jm-upload-result.warn{background:rgba(255,220,50,0.08);border-color:r
 .jm-upload-result ul{margin:6px 0 0 16px;padding:0}
 .jm-upload-result ul li{margin-bottom:2px}
 /* 카운트 + 일괄 선택 한 줄 */
-.jm-count-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.jm-count-row{display:flex;align-items:center;justify-content:space-between;padding-top:8px;margin-bottom:12px;border-top:1px solid var(--border)}
 .jm-count{font-size:13px;color:var(--text-secondary);line-height:1}
 .jm-count strong{color:var(--text-primary);font-weight:600}
 .jm-bulk-right{display:flex;align-items:center;gap:10px}
@@ -659,3 +659,82 @@ body.dark .pg-btn.pg-active { background: var(--navy-light); border-color: var(-
 }
 
 
+
+/* ── 공고 관리 세부 필터 ── */
+.jm-detail-filter {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.jm-filter-selects {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.jm-fg {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+.jm-fg label {
+  font-size: 11px;
+  color: var(--text-hint);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.jm-fg select {
+  width: 100%;
+  font-size: 13px;
+  padding: 7px 26px 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-family: inherit;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23555A78' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  cursor: pointer;
+  transition: border-color .15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jm-fg select:focus { outline: none; border-color: var(--navy-light); }
+.jm-filter-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background .15s, color .15s, border-color .15s;
+  height: 34px;
+  align-self: flex-end;
+}
+.jm-filter-reset-btn:hover { background: var(--navy-muted); color: var(--navy); border-color: var(--navy-light); }
+@media(max-width:900px){
+  .jm-filter-selects { grid-template-columns: repeat(3, 1fr); }
+}
+@media(max-width:600px){
+  .jm-detail-filter { flex-direction: column; align-items: stretch; }
+  .jm-filter-selects { grid-template-columns: repeat(2, 1fr); }
+  .jm-filter-reset-btn { width: 100%; justify-content: center; }
+}
