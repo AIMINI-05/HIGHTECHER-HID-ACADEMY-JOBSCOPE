@@ -1,0 +1,11 @@
+# ──────────────────────────────
+# 민감한 설정 파일 — 절대 커밋 금지
+# ──────────────────────────────
+js/config.js
+
+# macOS
+.DS_Store
+
+# Firebase 배포 캐시
+.firebase/
+firebase-debug.log
