@@ -13,8 +13,9 @@ function toggleTheme(){
   updateThemeLabel();
 }
 function updateThemeLabel(){
-  const el=document.getElementById('themeToggleLabel');
-  if(el) el.textContent=_isDark?'다크 모드':'라이트 모드';
+  document.querySelectorAll('.theme-toggle-label').forEach(el=>{
+    el.textContent=_isDark?'다크 모드':'라이트 모드';
+  });
 }
 
 /* ── localStorage 헬퍼 (키워드·설정용 유지) ── */
@@ -37,6 +38,8 @@ let ALL_JOBS=[];
 let JK_JOBS=[];           // 잡코리아 API 공고
 let jkEnabled=load(SK.JK_ENABLED, true);
 let isSuperMode=false; // 제작자 전용 슈퍼 모드
+let _adminRole=null;   // 'admin'|'super'|null — 로그인 상태 추적
+let _detailJobId=null; // 현재 열린 상세보기 공고 id
 let jkSyncStatus='idle';  // 'idle'|'loading'|'live'|'error'
 let jkLastSync=null;
 let selKw=new Set(load(SK.SEL_KW,[]));
@@ -490,15 +493,151 @@ function openDetail(id){
     </div>`:''}
   `;
 
+  _detailJobId = String(j.id);
   document.getElementById('detailOverlay').classList.add('open');
   document.getElementById('detailPanel').classList.add('open');
   document.body.style.overflow='hidden';
+
+  // 관리자면 수정 버튼 표시 (CUSTOM_JOBS에 있는 공고만)
+  const editBtn=document.getElementById('detailEditToggleBtn');
+  if(editBtn){
+    const isCustom=CUSTOM_JOBS.some(cj=>String(cj.id)===String(j.id));
+    editBtn.style.display=(_adminRole&&isCustom)?'':'none';
+  }
+  // 편집 모드 초기화
+  const ef=document.getElementById('detailEditFooter');
+  if(ef)ef.style.display='none';
+  document.getElementById('detailPanel').classList.remove('edit-mode');
 }
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
   document.body.style.overflow='';
+  _detailJobId=null;
 }
+
+/* ── 상세보기 인라인 편집 ── */
+function toggleDetailEdit(){
+  const panel=document.getElementById('detailPanel');
+  const isEdit=panel.classList.contains('edit-mode');
+  if(isEdit){ cancelDetailEdit(); return; }
+
+  const j=CUSTOM_JOBS.find(cj=>String(cj.id)===String(_detailJobId));
+  if(!j)return;
+
+  panel.classList.add('edit-mode');
+  const btn=document.getElementById('detailEditToggleBtn');
+  if(btn)btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 취소`;
+
+  // 저장 버튼 표시
+  const ef=document.getElementById('detailEditFooter');
+  if(ef)ef.style.display='flex';
+
+  // detailBody를 편집 폼으로 교체
+  document.getElementById('detailBody').innerHTML=`
+    <div class="detail-edit-form">
+      <div class="de-section-title">기본 정보</div>
+      <div class="de-row"><label>공고명</label><input class="de-input" id="de_title" value="${esc(j.title)}"></div>
+      <div class="de-row"><label>회사명</label><input class="de-input" id="de_company" value="${esc(j.company)}"></div>
+      <div class="de-row"><label>직무</label><input class="de-input" id="de_role" value="${esc(j.role||'')}"></div>
+      <div class="de-row"><label>업종</label><input class="de-input" id="de_industry" value="${esc(j.industry||'')}"></div>
+      <div class="de-row"><label>근무 지역</label><input class="de-input" id="de_location" value="${esc(j.location||'')}"></div>
+
+      <div class="de-section-title" style="margin-top:16px">조건</div>
+      <div class="de-row"><label>고용형태</label>
+        <select class="de-input" id="de_jobType">
+          ${['정규직','계약직','인턴'].map(v=>`<option${j.jobType===v?' selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+      <div class="de-row"><label>경력</label>
+        <select class="de-input" id="de_experience">
+          ${['신입','경력','신입·경력','무관',''].map(v=>`<option value="${v}"${(j.experience||'')=== v?' selected':''}>${v||'미정'}</option>`).join('')}
+        </select>
+      </div>
+      <div class="de-row"><label>학력</label><input class="de-input" id="de_education" value="${esc(j.education||'')}"></div>
+      <div class="de-row"><label>기업 규모</label>
+        <select class="de-input" id="de_scale">
+          ${[['large','대기업'],['mid','중소기업'],['startup','스타트업'],['public','공공기관']].map(([v,n])=>`<option value="${v}"${j.scale===v?' selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
+      <div class="de-row"><label>출처</label>
+        <select class="de-input" id="de_src">
+          ${[['custom','직접등록'],['saramin','사람인'],['jobkorea','잡코리아'],['jk_starter','잡코리아 신입공채'],['worknet','워크넷'],['wanted','원티드'],['work24','고용24'],['etc','기타']].map(([v,n])=>`<option value="${v}"${(j.src||'custom')===v?' selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="de-section-title" style="margin-top:16px">마감일</div>
+      <div class="de-row"><label>유형</label>
+        <select class="de-input" id="de_deadlineType" onchange="onDeDetailTypeChange()">
+          <option value="date"${(j.deadlineType||'date')==='date'?' selected':''}>날짜 지정</option>
+          <option value="always"${j.deadlineType==='always'?' selected':''}>상시채용</option>
+          <option value="untilFilled"${j.deadlineType==='untilFilled'?' selected':''}>채용시 마감</option>
+        </select>
+      </div>
+      <div class="de-row" id="de_deadlineRow" style="${(j.deadlineType==='always'||j.deadlineType==='untilFilled')?'display:none':''}" >
+        <label>마감일</label><input class="de-input" type="date" id="de_deadline" value="${j.deadline||''}">
+      </div>
+
+      <div class="de-section-title" style="margin-top:16px">급여 · 상세</div>
+      <div class="de-row"><label>연봉</label><input class="de-input" id="de_salary" value="${esc(j.salary||'')}"></div>
+      <div class="de-row"><label>지원 URL</label><input class="de-input" id="de_url" value="${esc(j.url||'')}"></div>
+      <div class="de-row de-row-full"><label>우대사항 · 필요기술</label>
+        <textarea class="de-input de-textarea" id="de_requirements">${esc(j.requirements||j.desc||'')}</textarea>
+      </div>
+    </div>
+  `;
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function onDeDetailTypeChange(){
+  const t=document.getElementById('de_deadlineType')?.value;
+  const row=document.getElementById('de_deadlineRow');
+  if(row)row.style.display=(t==='always'||t==='untilFilled')?'none':'';
+}
+function cancelDetailEdit(){
+  const panel=document.getElementById('detailPanel');
+  panel.classList.remove('edit-mode');
+  const btn=document.getElementById('detailEditToggleBtn');
+  if(btn)btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 수정`;
+  const ef=document.getElementById('detailEditFooter');
+  if(ef)ef.style.display='none';
+  // 원래 상세보기로 복원
+  openDetail(_detailJobId);
+}
+async function saveDetailEdit(){
+  const j=CUSTOM_JOBS.find(cj=>String(cj.id)===String(_detailJobId));
+  if(!j)return;
+  const get=id=>document.getElementById(id)?.value||'';
+  const dlType=get('de_deadlineType');
+  const updated={
+    ...j,
+    title:     get('de_title'),
+    company:   get('de_company'),
+    role:      get('de_role'),
+    industry:  get('de_industry'),
+    location:  get('de_location'),
+    jobType:   get('de_jobType'),
+    experience:get('de_experience'),
+    education: get('de_education'),
+    scale:     get('de_scale'),
+    src:       get('de_src'),
+    salary:    get('de_salary'),
+    url:       get('de_url'),
+    requirements: get('de_requirements'),
+    deadlineType: dlType,
+    deadline:  dlType==='date'?get('de_deadline'):'',
+  };
+  const saveBtn=document.querySelector('.detail-save-btn');
+  if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='저장 중…';}
+  try{
+    await window._fb?.save(updated);
+    // 저장 후 상세보기 새로고침
+    openDetail(_detailJobId);
+  }catch(err){
+    alert('저장 중 오류: '+err.message);
+    if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 저장';}
+  }
+}
+
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeDetail();});
 
 /* ── 페이지네이션 ── */
@@ -776,6 +915,7 @@ async function tryLogin(){
   try{
     const role = await window._fb.signIn(email, pw);
     isSuperMode = (role==='super');
+    _adminRole = role;
     closeLogin();
     openAdmin();
   } catch(e) {
@@ -786,6 +926,29 @@ async function tryLogin(){
     btn.disabled=false; btn.textContent='로그인';
   }
 }
+function adminLogout(){
+  if(!confirm('로그아웃 하시겠습니까?'))return;
+  window._fb?.signOut?.();
+  closeAdmin();
+  isSuperMode=false;
+  _adminRole=null;
+}
+
+// 새로고침 후 로그인 세션 자동 복원
+window.addEventListener('auth-state-changed', (e)=>{
+  const {role} = e.detail;
+  _adminRole = role;
+  if(role){
+    isSuperMode = (role==='super');
+    const settingBtn = document.querySelector('.header-icon-btn[onclick="openLogin()"]');
+    if(settingBtn) settingBtn.setAttribute('onclick','openAdmin()');
+  } else {
+    isSuperMode = false;
+    const settingBtn = document.querySelector('.header-icon-btn[onclick="openAdmin()"]');
+    if(settingBtn) settingBtn.setAttribute('onclick','openLogin()');
+  }
+});
+
 function openAdmin(){
   const tabApi  = document.getElementById('tabApi');
   const tabKw   = document.getElementById('tabKw');
@@ -810,8 +973,6 @@ function openAdmin(){
 }
 function closeAdmin(){
   document.getElementById('adminModal').classList.remove('open');
-  isSuperMode=false;
-  window._fb?.signOut?.();
 }
 
 function switchAdminTab(tab){
@@ -1097,11 +1258,15 @@ function updateBulkBar(){
   const total=CUSTOM_JOBS.length;
   const allCheckEl=document.getElementById('jmCheckAll');
   const numEl=document.getElementById('jmSelectedNum');
+  const numEl2=document.getElementById('jmSelectedNum2');
   const delBtn=document.getElementById('jmBulkDelBtn');
+  const editBtn=document.getElementById('jmBulkEditBtn');
   const cnt=selectedIds.size;
   if(allCheckEl){allCheckEl.checked=cnt===total&&total>0;allCheckEl.indeterminate=cnt>0&&cnt<total;}
   if(numEl)numEl.textContent=cnt;
+  if(numEl2)numEl2.textContent=cnt;
   if(delBtn)delBtn.disabled=cnt===0;
+  if(editBtn)editBtn.disabled=cnt===0;
 }
 function onCardCheck(cb, jobId){
   const id=String(jobId);

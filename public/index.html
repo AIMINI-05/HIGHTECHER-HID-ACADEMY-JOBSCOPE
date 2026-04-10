@@ -144,11 +144,22 @@
       <div class="detail-title" id="detailTitle"></div>
       <div class="detail-company" id="detailCompany"></div>
     </div>
+    <button id="detailEditToggleBtn" class="detail-edit-toggle-btn" style="display:none" onclick="toggleDetailEdit()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      수정
+    </button>
     <button class="detail-close" onclick="closeDetail()">×</button>
   </div>
   <div class="detail-body" id="detailBody"></div>
   <div class="detail-footer">
     <div id="detailJkDisclaimer" style="display:none"></div>
+    <div id="detailEditFooter" style="display:none;gap:8px;margin-bottom:10px;display:none">
+      <button class="detail-save-btn" onclick="saveDetailEdit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        저장
+      </button>
+      <button class="detail-cancel-btn" onclick="cancelDetailEdit()">취소</button>
+    </div>
     <a class="detail-apply-btn" id="detailApplyBtn" href="#" target="_blank" rel="noopener">지원공고 바로가기 →</a>
   </div>
 </div>
@@ -207,7 +218,7 @@
           <span class="theme-icon theme-icon-moon">🌙</span>
           <span class="theme-icon theme-icon-sun">☀️</span>
         </span>
-        <span class="theme-toggle-label" id="themeToggleLabel">라이트 모드</span>
+        <span class="theme-toggle-label">라이트 모드</span>
       </button>
     </div>
   </div>
@@ -218,7 +229,10 @@
   <div class="modal admin-modal-wide">
     <div class="modal-head">
       <h2>관리자 설정</h2>
-      <button class="mclose" onclick="closeAdmin()">×</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button onclick="adminLogout()" style="padding:4px 12px;font-size:12px;background:transparent;border:1px solid rgba(184,64,64,0.4);color:#c04040;border-radius:6px;cursor:pointer;font-family:inherit;transition:all 0.15s" onmouseover="this.style.background='rgba(184,64,64,0.08)'" onmouseout="this.style.background='transparent'">로그아웃</button>
+        <button class="mclose" onclick="closeAdmin()">×</button>
+      </div>
     </div>
     <div class="admin-tabs">
       <!-- 슈퍼모드 전용 탭 (기본 숨김) -->
@@ -288,6 +302,16 @@
       <div class="mbtns" style="margin-top:14px">
         <button class="mbtn-s" onclick="closeAdmin()">닫기</button>
       </div>
+    </div>
+    <div class="theme-toggle-wrap" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
+      <button class="theme-toggle-btn" onclick="toggleTheme()">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-thumb"></span>
+          <span class="theme-icon theme-icon-moon">🌙</span>
+          <span class="theme-icon theme-icon-sun">☀️</span>
+        </span>
+        <span class="theme-toggle-label">라이트 모드</span>
+      </button>
     </div>
   </div>
 </div>
@@ -485,6 +509,12 @@
               <input type="checkbox" id="jmCheckAll" onchange="toggleSelectAll(this.checked)">
               전체 선택
             </label>
+            <button class="jm-bulk-src-btn" onclick="bulkAutoSrc()">
+              🔗 출처 자동 재분류
+            </button>
+            <button class="jm-bulk-edit-btn" id="jmBulkEditBtn" onclick="openBulkEditModal()" disabled>
+              ✏️ 일괄 수정 (<span id="jmSelectedNum2">0</span>)
+            </button>
             <button class="jm-bulk-del-btn" id="jmBulkDelBtn" onclick="deleteSelected()" disabled>
               🗑 삭제 (<span id="jmSelectedNum">0</span>)
             </button>

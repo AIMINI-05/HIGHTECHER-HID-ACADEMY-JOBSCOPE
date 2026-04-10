@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const cfg = window.APP_CONFIG?.firebase;
 if (!cfg?.apiKey) {
@@ -137,4 +137,10 @@ window._fb = {
 // Firebase 준비 완료 신호 (폴링 방식으로 안전하게)
 window._fbReady = true;
 window.dispatchEvent(new Event('firebase-ready'));
+
+// 세션 유지: 새로고침 후 로그인 상태 자동 복원
+onAuthStateChanged(auth, (user) => {
+  const role = user ? (ROLE_MAP[user.uid] || null) : null;
+  window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user, role } }));
+});
 
