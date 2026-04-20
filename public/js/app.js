@@ -95,6 +95,14 @@ function startFirebaseSubscription(){
       renderCustomJobList();
     }
   });
+  window._fb.subscribeKeywords((list)=>{
+    KWS=list;
+    save(SK.KWS,KWS);
+    selKw.forEach(k=>{if(!KWS.includes(k))selKw.delete(k);});
+    save(SK.SEL_KW,[...selKw]);
+    initKwTags();
+    render();
+  });
   initNoticeSubscription();
   // 잡코리아 API 초기화 (Firebase 준비 후 실행)
   if(jkEnabled) initJobkorea();
@@ -220,6 +228,9 @@ const getPat=k=>(KW_PAT[k]||[k]).map(norm);
 
 /* ── 키워드 매칭 ── */
 function getHits(j){
+  if(Array.isArray(j.customKeywords)&&j.customKeywords.length>0){
+    return KWS.filter(k=>j.customKeywords.includes(k));
+  }
   const txt=norm(`${j.title} ${j.role||''} ${j.industry||''} ${j.desc||''}`);
   return KWS.filter(k=>getPat(k).some(p=>txt.includes(p)));
 }
@@ -275,19 +286,91 @@ function matchesGlobal(j){
 
 /* ── KW 태그 ── */
 function updateModeButtons(){
-  document.getElementById('modeAnyBtn').classList.toggle('active',matchMode==='any');
-  document.getElementById('modeAllBtn').classList.toggle('active',matchMode==='all');
+  // 버튼 제거됨 — 호환성 유지용 빈 함수
 }
 function initKwTags(){
-  document.getElementById('kwTags').innerHTML=KWS.map(k=>
+  const el=document.getElementById('kwTags');
+  if(!el) return;
+  el.innerHTML=KWS.map(k=>
     `<button type="button" class="ktag ${selKw.has(k)?'on':''}" data-kw="${k}" onclick="toggleKw(this.dataset.kw)">${k}</button>`
   ).join('');
-  updateModeButtons();
 }
 function toggleKw(k){selKw.has(k)?selKw.delete(k):selKw.add(k);save(SK.SEL_KW,[...selKw]);currentPage=1;initKwTags();render();}
 function selectAll(){KWS.forEach(k=>selKw.add(k));save(SK.SEL_KW,[...selKw]);currentPage=1;initKwTags();render();}
 function clearAll(){selKw.clear();save(SK.SEL_KW,[]);currentPage=1;initKwTags();render();}
 function setMatchMode(m){matchMode=m;save(SK.MATCH_MODE,m);currentPage=1;initKwTags();render();}
+
+/* ── 체크박스 필터 상태 ── */
+const ROLE_FIXED_LIST=['데이터 사이언티스트','데이터 엔지니어','AI 엔지니어','소프트웨어 개발','의료·헬스케어'];
+const INDUSTRY_FIXED_LIST=['IT·SW','바이오·헬스케어','의료·제약','금융'];
+const LOC_FIXED_LIST=['서울','경기','인천','부산','대전','대구'];
+let _cbRole={all:true,vals:[],etc:false};
+let _cbIndustry={all:true,vals:[],etc:false};
+let _cbScale={all:true,vals:[]};
+let _cbLoc={all:true,vals:[],others:false};
+let _cbExp={all:true,vals:[]};
+
+function _cbToggle(allId, otherIds, activeEl){
+  const allBox=document.getElementById(allId);
+  const others=otherIds.map(id=>document.getElementById(id)).filter(Boolean);
+  if(activeEl===allBox){
+    if(allBox&&allBox.checked) others.forEach(c=>c.checked=false);
+  } else {
+    const any=others.some(c=>c.checked);
+    if(allBox) allBox.checked=!any;
+  }
+}
+
+// 직무
+window.onCbRoleFilter=function(el){
+  _cbToggle('fj-all',['fj-ds','fj-de','fj-ai','fj-sw','fj-med','fj-etc'],el);
+  const allBox=document.getElementById('fj-all');
+  const vals=['fj-ds','fj-de','fj-ai','fj-sw','fj-med'].map(id=>document.getElementById(id)).filter(c=>c&&c.checked).map(c=>c.value);
+  const etc=!!(document.getElementById('fj-etc')?.checked);
+  _cbRole={all:!!(allBox?.checked),vals,etc};
+  currentPage=1;render();
+}
+
+// 업종
+window.onCbIndustryFilter=function(el){
+  _cbToggle('fi-all',['fi-it','fi-bio','fi-med','fi-fin','fi-etc'],el);
+  const allBox=document.getElementById('fi-all');
+  const vals=['fi-it','fi-bio','fi-med','fi-fin'].map(id=>document.getElementById(id)).filter(c=>c&&c.checked).map(c=>c.value);
+  const etc=!!(document.getElementById('fi-etc')?.checked);
+  _cbIndustry={all:!!(allBox?.checked),vals,etc};
+  currentPage=1;render();
+}
+
+// 기업 규모
+window.onCbScaleFilter=function(el){
+  _cbToggle('fs-all',['fs-large','fs-mid','fs-startup','fs-public'],el);
+  const allBox=document.getElementById('fs-all');
+  const vals=['fs-large','fs-mid','fs-startup','fs-public'].map(id=>document.getElementById(id)).filter(c=>c&&c.checked).map(c=>c.value);
+  _cbScale={all:!!(allBox?.checked),vals};
+  currentPage=1;render();
+}
+
+// 근무 지역
+window.onCbLocFilter=function(el){
+  _cbToggle('floc-all',['floc-seoul','floc-gyeonggi','floc-incheon','floc-busan','floc-daejeon','floc-daegu','floc-others'],el);
+  const allBox=document.getElementById('floc-all');
+  const vals=['floc-seoul','floc-gyeonggi','floc-incheon','floc-busan','floc-daejeon','floc-daegu'].map(id=>document.getElementById(id)).filter(c=>c&&c.checked).map(c=>c.value);
+  const others=!!(document.getElementById('floc-others')?.checked);
+  _cbLoc={all:!!(allBox?.checked),vals,others};
+  currentPage=1;render();
+}
+
+// 경력
+window.onCbExpFilter=function(el){
+  _cbToggle('fexp-all',['fexp-new','fexp-both','fexp-exp'],el);
+  const allBox=document.getElementById('fexp-all');
+  const vals=['fexp-new','fexp-both','fexp-exp'].map(id=>document.getElementById(id)).filter(c=>c&&c.checked).map(c=>c.value);
+  _cbExp={all:!!(allBox?.checked),vals};
+  // hidden select 동기화
+  const sel=document.getElementById('fexp');
+  if(sel) sel.value=vals.length===1?vals[0]:'';
+  currentPage=1;render();
+}
 
 /* ── 드롭다운 초기화 ── */
 function initDropdowns(){
@@ -323,27 +406,43 @@ function initDropdowns(){
 
 /* ── 필터링 ── */
 function getFiltered(){
-  const fj=document.getElementById('fj').value;
-  const fi=document.getElementById('fi').value;
-  const fs=document.getElementById('fs').value;
-  const floc=document.getElementById('floc').value;
-  const ft=document.getElementById('ft').value;
-  const fexp=document.getElementById('fexp').value;
-
+  const ft=document.getElementById('ft')?.value||'';
   return JOBS.filter(j=>{
     if(!matchesGlobal(j))return false;
     if(!matchesKw(j))return false;
     if(!matchesSalary(j))return false;
-    if(fj&&j.role!==fj)return false;
-    if(fi&&j.industry!==fi)return false;
-    if(fs&&j.scale!==fs)return false;
-    if(floc&&j.location!==floc)return false;
-    if(ft&&j.jobType!==ft)return false;
-    if(fexp){
-      const b=expBadge(j.experience);
-      if(fexp==='경력'){if(b!=='경력')return false;}
-      else{if(b!==fexp)return false;}
+    // 직무
+    if(!_cbRole.all){
+      const roleMatch=_cbRole.vals.some(v=>j.role===v||j.role?.includes(v));
+      const etcMatch=_cbRole.etc&&(!j.role||!ROLE_FIXED_LIST.includes(j.role));
+      if(!roleMatch&&!etcMatch)return false;
     }
+    // 업종
+    if(!_cbIndustry.all){
+      const indMatch=_cbIndustry.vals.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)||v.includes(j.industry)));
+      const etcMatch=_cbIndustry.etc&&(!j.industry||!INDUSTRY_FIXED_LIST.some(v=>j.industry===v||j.industry.includes(v)||v.includes(j.industry)));
+      if(!indMatch&&!etcMatch)return false;
+    }
+    // 기업 규모
+    if(!_cbScale.all&&_cbScale.vals.length>0){
+      if(!_cbScale.vals.includes(j.scale))return false;
+    }
+    // 지역
+    if(!_cbLoc.all){
+      const locMatch=_cbLoc.vals.some(v=>j.location&&(j.location===v||j.location.startsWith(v)));
+      const otherMatch=_cbLoc.others&&j.location&&!LOC_FIXED_LIST.some(v=>j.location===v||j.location.startsWith(v));
+      if(!locMatch&&!otherMatch)return false;
+    }
+    // 경력
+    if(!_cbExp.all&&_cbExp.vals.length>0){
+      const b=expBadge(j.experience);
+      const expMatch=_cbExp.vals.some(v=>{
+        if(v==='경력') return b==='경력';
+        return b===v;
+      });
+      if(!expMatch)return false;
+    }
+    if(ft&&j.jobType!==ft)return false;
     return true;
   });
 }
@@ -407,6 +506,8 @@ function cardHtml(j,idx,expired=false){
 }
 
 /* ── 상세 패널 ── */
+
+function openDetailById(id){ openDetail(id); }
 function openDetail(id){
   const j=JOBS.find(x=>String(x.id)===String(id))||ALL_JOBS.find(x=>String(x.id)===String(id));
   if(!j)return;
@@ -425,8 +526,9 @@ function openDetail(id){
   document.getElementById('detailLogo').style.cssText=`background:${cs.bg};color:${cs.color};width:52px;height:52px;border-radius:var(--radius-md);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0`;
   document.getElementById('detailTitle').textContent=j.title;
   document.getElementById('detailCompany').textContent=j.company;
-  // 잡코리아 공고면 jkUrl로 연결, 일반 공고면 j.url
-  const applyUrl = (j.src==='jobkorea'||j.src==='jk_starter') ? j.jkUrl : j.url;
+  // 진짜 잡코리아 API 공고(id가 jk_로 시작)만 jkUrl 사용, CSV 업로드된 공고는 j.url 사용
+  const isRealJkJob = (j.src==='jobkorea'||j.src==='jk_starter') && String(j.id).startsWith('jk_');
+  const applyUrl = isRealJkJob ? (j.jkUrl || j.url) : j.url;
   document.getElementById('detailApplyBtn').href = applyUrl || '#';
 
   // 잡코리아 공고 안내문구 표시 (가이드 필수)
@@ -497,22 +599,33 @@ function openDetail(id){
   document.getElementById('detailOverlay').classList.add('open');
   document.getElementById('detailPanel').classList.add('open');
   document.body.style.overflow='hidden';
+  // FAB 숨기기 (인라인 패널 뒤로)
+  const fabGroup=document.querySelector('.fab-group:not(.jm-fab-group)');
+  if(fabGroup)fabGroup.style.display='none';
 
-  // 관리자면 수정 버튼 표시 (CUSTOM_JOBS에 있는 공고만)
-  const editBtn=document.getElementById('detailEditToggleBtn');
-  if(editBtn){
+  // 마스터(super) 계정만 인라인 수정 버튼 표시
+  const editBtnGroup=document.getElementById('detailEditBtnGroup');
+  const editToggleBtn=document.getElementById('detailEditToggleBtn');
+  if(editBtnGroup && editToggleBtn){
     const isCustom=CUSTOM_JOBS.some(cj=>String(cj.id)===String(j.id));
-    editBtn.style.display=(_adminRole&&isCustom)?'':'none';
+    const canEdit = (_adminRole==='super') && isCustom;
+    editBtnGroup.style.display = canEdit ? 'flex' : 'none';
   }
   // 편집 모드 초기화
+  const cancelBtn=document.getElementById('detailCancelBtn');
+  if(cancelBtn) cancelBtn.style.display='none';
+  if(editToggleBtn) editToggleBtn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 수정`;
   const ef=document.getElementById('detailEditFooter');
-  if(ef)ef.style.display='none';
+  if(ef) ef.style.display='none';
   document.getElementById('detailPanel').classList.remove('edit-mode');
 }
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
   document.body.style.overflow='';
+  // FAB 다시 표시
+  const fabGroup=document.querySelector('.fab-group:not(.jm-fab-group)');
+  if(fabGroup)fabGroup.style.display='';
   _detailJobId=null;
 }
 
@@ -527,11 +640,15 @@ function toggleDetailEdit(){
 
   panel.classList.add('edit-mode');
   const btn=document.getElementById('detailEditToggleBtn');
-  if(btn)btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> 취소`;
+  if(btn) btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 수정중`;
+
+  // 취소 버튼 표시
+  const cancelBtn=document.getElementById('detailCancelBtn');
+  if(cancelBtn) cancelBtn.style.display='';
 
   // 저장 버튼 표시
   const ef=document.getElementById('detailEditFooter');
-  if(ef)ef.style.display='flex';
+  if(ef) ef.style.display='flex';
 
   // detailBody를 편집 폼으로 교체
   document.getElementById('detailBody').innerHTML=`
@@ -584,8 +701,48 @@ function toggleDetailEdit(){
       <div class="de-row de-row-full"><label>우대사항 · 필요기술</label>
         <textarea class="de-input de-textarea" id="de_requirements">${esc(j.requirements||j.desc||'')}</textarea>
       </div>
+
+      <div class="de-section-title" style="margin-top:16px">매칭 키워드</div>
+      <div style="font-size:11px;color:var(--text-hint);margin-bottom:8px">체크한 키워드가 이 공고에 고정 적용됩니다. 아무것도 체크 안 하면 자동 매칭으로 돌아갑니다.</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md)" id="de_kwGrid">
+        ${KWS.map(k=>{
+          const on=Array.isArray(j.customKeywords)&&j.customKeywords.includes(k);
+          return `<label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;padding:4px 8px;border-radius:20px;border:1px solid ${on?'var(--accent)':'var(--border)'};background:${on?'var(--navy-muted)':'transparent'};color:${on?'var(--navy-text)':'var(--text-secondary)'};transition:all .15s" class="de-kw-chip">
+            <input type="checkbox" data-kw="${k}" ${on?'checked':''} style="display:none">
+            ${k}
+          </label>`;
+        }).join('')}
+      </div>
+
+      <div class="de-section-title" style="margin-top:16px">공고 상태</div>
+      <div class="de-row" style="align-items:center;gap:10px">
+        <label style="flex-shrink:0">마감 처리</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+          <input type="checkbox" id="de_closed" ${j.closed?'checked':''} style="width:16px;height:16px;accent-color:var(--red);cursor:pointer">
+          <span id="de_closed_label" style="color:${j.closed?'var(--red)':'var(--text-secondary)'}">
+            ${j.closed?'마감됨 — 체크 해제 시 재게시':'진행 중 — 체크 시 마감 처리'}
+          </span>
+        </label>
+      </div>
     </div>
   `;
+  setTimeout(()=>{
+    document.querySelectorAll('.de-kw-chip').forEach(chip=>{
+      chip.addEventListener('click',()=>{
+        const cb=chip.querySelector('input[type="checkbox"]');
+        cb.checked=!cb.checked;
+        chip.style.borderColor=cb.checked?'var(--accent)':'var(--border)';
+        chip.style.background=cb.checked?'var(--navy-muted)':'transparent';
+        chip.style.color=cb.checked?'var(--navy-text)':'var(--text-secondary)';
+      });
+    });
+    const cb=document.getElementById('de_closed');
+    const lbl=document.getElementById('de_closed_label');
+    if(cb&&lbl) cb.addEventListener('change',()=>{
+      lbl.textContent=cb.checked?'마감됨 — 체크 해제 시 재게시':'진행 중 — 체크 시 마감 처리';
+      lbl.style.color=cb.checked?'var(--red)':'var(--text-secondary)';
+    });
+  },0);
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 function onDeDetailTypeChange(){
@@ -597,9 +754,11 @@ function cancelDetailEdit(){
   const panel=document.getElementById('detailPanel');
   panel.classList.remove('edit-mode');
   const btn=document.getElementById('detailEditToggleBtn');
-  if(btn)btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 수정`;
+  if(btn) btn.innerHTML=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> 수정`;
+  const cancelBtn=document.getElementById('detailCancelBtn');
+  if(cancelBtn) cancelBtn.style.display='none';
   const ef=document.getElementById('detailEditFooter');
-  if(ef)ef.style.display='none';
+  if(ef) ef.style.display='none';
   // 원래 상세보기로 복원
   openDetail(_detailJobId);
 }
@@ -608,6 +767,20 @@ async function saveDetailEdit(){
   if(!j)return;
   const get=id=>document.getElementById(id)?.value||'';
   const dlType=get('de_deadlineType');
+  const newScale=get('de_scale');
+  const scaleNameMap={large:'대기업',mid:'중소기업',startup:'스타트업',public:'공공기관'};
+  const salaryStr=get('de_salary').trim();
+  let salaryMin=0,salaryMax=0;
+  const rangeM=salaryStr.replace(/,/g,'').match(/^(\d+)~(\d+)만원$/);
+  const aboveM=salaryStr.replace(/,/g,'').match(/^(\d+)만원\s*이상$/);
+  const belowM=salaryStr.replace(/,/g,'').match(/^(\d+)만원\s*이하$/);
+  const fixedM=salaryStr.replace(/,/g,'').match(/^(\d+)만원$/);
+  if(rangeM){salaryMin=parseInt(rangeM[1]);salaryMax=parseInt(rangeM[2]);}
+  else if(aboveM){salaryMin=parseInt(aboveM[1]);salaryMax=9999;}
+  else if(belowM){salaryMin=0;salaryMax=parseInt(belowM[1]);}
+  else if(fixedM){salaryMin=parseInt(fixedM[1]);salaryMax=parseInt(fixedM[1]);}
+  const customKeywords=[...document.querySelectorAll('.de-kw-chip input[type="checkbox"]:checked')].map(cb=>cb.dataset.kw);
+  const closed=document.getElementById('de_closed')?.checked||false;
   const updated={
     ...j,
     title:     get('de_title'),
@@ -618,20 +791,31 @@ async function saveDetailEdit(){
     jobType:   get('de_jobType'),
     experience:get('de_experience'),
     education: get('de_education'),
-    scale:     get('de_scale'),
+    scale:     newScale,
+    scaleName: scaleNameMap[newScale]||j.scaleName,
     src:       get('de_src'),
-    salary:    get('de_salary'),
+    salary:    salaryStr||'협의',
+    salaryMin, salaryMax,
     url:       get('de_url'),
     requirements: get('de_requirements'),
     deadlineType: dlType,
     deadline:  dlType==='date'?get('de_deadline'):'',
+    customKeywords,
+    closed,
   };
   const saveBtn=document.querySelector('.detail-save-btn');
   if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='저장 중…';}
   try{
     await window._fb?.save(updated);
-    // 저장 후 상세보기 새로고침
-    openDetail(_detailJobId);
+    // CUSTOM_JOBS를 직접 업데이트 후 상세보기 새로고침 (onSnapshot 지연 방지)
+    const idx = CUSTOM_JOBS.findIndex(cj=>String(cj.id)===String(updated.id));
+    if(idx!==-1) CUSTOM_JOBS[idx]={...CUSTOM_JOBS[idx],...updated};
+    rebuildJobs();
+    const savedId=_detailJobId;
+    // 버튼 복원 후 패널 닫기
+    if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 저장';}
+    cancelDetailEdit();
+    openDetail(savedId);
   }catch(err){
     alert('저장 중 오류: '+err.message);
     if(saveBtn){saveBtn.disabled=false;saveBtn.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 저장';}
@@ -668,6 +852,75 @@ function goJmPage(p){
 }
 
 /* ── 메인 렌더 ── */
+
+/* ── 오늘의 추천 공고 ── */
+function renderTodaySection(allFiltered){
+  const el=document.getElementById('todayRecommendSection');
+  if(!el) return;
+  const today=new Date().toISOString().slice(0,10);
+  // TOP: 마감 D-7 이내이면서 키워드 매칭 많은 순
+  const scored=allFiltered.filter(j=>{
+    const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
+    const expired=!isSpecial&&dday(j.deadline)<0;
+    return !expired&&!j.closed;
+  }).map(j=>{
+    const txt=`${j.title||''} ${j.role||''} ${j.industry||''} ${j.keywords||''} ${j.description||''}`.toLowerCase();
+    const matchCount=[...selKw].filter(k=>txt.includes(k.toLowerCase())).length;
+    const matchScore=KWS.length>0?Math.round((matchCount/Math.max(KWS.length,1))*100):0;
+    const isNew=(j.createdAt||'').startsWith(today);
+    const d=j.deadlineType==='always'||j.deadlineType==='untilFilled'?999:dday(j.deadline);
+    const urgency=d<=7?10:d<=14?5:0;
+    return {...j, matchScore, isNew, urgency, matchCount};
+  }).sort((a,b)=>(b.matchScore+b.urgency)-(a.matchScore+a.urgency));
+
+  if(!scored.length){el.innerHTML='';return;}
+
+  // 카드1: TOP 매칭 (매칭도 가장 높은 공고)
+  // 카드2: 오늘 신규 중 가장 최근 등록 공고 (없으면 2위 매칭)
+  const topCard=scored[0];
+  const newCards=scored.filter(j=>j.isNew);
+  const newCard=newCards.length>0?newCards[0]:(scored[1]||null);
+
+  const makeCard=(j,badgeType)=>{
+    if(!j) return '';
+    const badge=badgeType==='top'
+      ? `<span class="today-card-badge top">☆ TOP 매칭</span>`
+      : `<span class="today-card-badge new">◆ 오늘 신규</span>`;
+    const d=j.deadlineType==='always'||j.deadlineType==='untilFilled'?null:dday(j.deadline);
+    const ddayBadge=d!==null&&d<=14?`<div class="today-card-dday">D-${d} ⚡</div>`:'';
+    const kws=(j.keywords||j.description||'').split(/[\s,]+/).filter(Boolean).slice(0,3);
+    const kwTags=kws.map(k=>`<span class="today-card-kw">${k}</span>`).join('');
+    const matchPct=j.matchScore>0?`<span class="today-card-match">매칭도 ${j.matchScore}%</span>`:'';
+    return `<div class="today-card" onclick="openDetailById('${j.id}')" style="cursor:pointer">
+      ${ddayBadge}
+      ${badge}
+      <div class="today-card-title">${j.title||'채용공고'}</div>
+      <div class="today-card-company">${j.company||''}${j.location&&j.location!=='미정'?' · '+j.location:''}${j.jobType?' · '+j.jobType:''}</div>
+      <div class="today-card-kws">${kwTags}</div>
+      <div class="today-card-foot">
+        ${matchPct}
+        <span class="today-card-link">상세보기 →</span>
+      </div>
+    </div>`;
+  };
+
+  const cards=[makeCard(topCard,'top'), makeCard(newCard,'new')].filter(Boolean).join('');
+
+  // 헤더 키워드 문구 — KWS 상위 3개
+  const kwLabel=KWS.slice(0,3).join(' · ')||[...selKw].slice(0,3).join(' · ')||'데이터 분석 · Python · 헬스케어';
+  const newCount=scored.filter(j=>j.isNew).length;
+
+  el.innerHTML=`
+    <div class="today-head">
+      <div class="today-title">
+        오늘의 매칭 공고
+        <span class="today-sub">${kwLabel} 기반 · 오늘 신규 ${newCount}건</span>
+      </div>
+    </div>
+    <div class="today-grid">${cards}</div>
+  `;
+}
+
 function render(){
   // 렌더 전 현재 높이 고정 → 스크롤 튀는 현상 방지
   const mainListEl = document.getElementById('mainList');
@@ -696,7 +949,7 @@ function render(){
 
   // 정렬
   const sortByDday=(a,b)=>dday(a.deadline)-dday(b.deadline);
-  const sortByRecent=(a,b)=>String(b.id).localeCompare(String(a.id));
+  const sortByRecent=(a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')||String(b.id).localeCompare(String(a.id));
   const sortFn=sortBy==='recent'?sortByRecent:sortByDday;
   activeList.sort(sortFn);
   urgentList.sort(sortByDday);
@@ -719,6 +972,17 @@ function render(){
       <div class="lbl">${s.lbl}${isActive?' ✓':''}</div><div class="val ${s.cls}">${s.val}</div>
     </div>`;
   }).join('');
+
+  // ── 히어로 플로팅 카드 값 업데이트 ──
+  const heroTotalEl=document.getElementById('heroTotalVal');
+  const heroMatchEl=document.getElementById('heroMatchVal');
+  const heroUrgentEl=document.getElementById('heroUrgentVal');
+  if(heroTotalEl) heroTotalEl.textContent=ALL_JOBS.length||'—';
+  if(heroMatchEl) heroMatchEl.textContent=all.length||'—';
+  if(heroUrgentEl) heroUrgentEl.textContent=urgentList.length||'—';
+
+  // ── 오늘의 추천 공고 ──
+  renderTodaySection(all);
 
   // 마감공고 탭 버튼 상태
   const closedBtn=document.getElementById('closedTabBtn');
@@ -773,6 +1037,15 @@ function render(){
   }
 
   document.getElementById('mainList').innerHTML=html;
+
+  // 필터 초기화 버튼 — 하나라도 활성 상태면 표시
+  const _ft=document.getElementById('ft')?.value||'';
+  const _isFiltered = selKw.size>0 || globalSearchQ || salaryMinFilter>0
+    || urgentFilter || closedFilter
+    || !_cbRole.all || !_cbIndustry.all || !_cbScale.all || !_cbLoc.all || !_cbExp.all || !!_ft;
+  const resetBtn=document.getElementById('filterResetBtn');
+  if(resetBtn) resetBtn.style.display=_isFiltered?'flex':'none';
+
   // min-height 해제 (다음 프레임에서 자연스럽게 높이 변경)
   requestAnimationFrame(()=>{ if(mainListEl) mainListEl.style.minHeight=''; });
 
@@ -803,19 +1076,54 @@ function toggleUrgentFilter(){
   render();
 }
 
+function resetAllFilters(){
+  // 키워드
+  selKw.clear(); save(SK.SEL_KW,[]);
+  // 검색어
+  globalSearchQ='';
+  const gs=document.getElementById('globalSearch');
+  if(gs) gs.value='';
+  document.getElementById('searchClear')?.classList.remove('on');
+  // hidden select 초기화
+  ['fj','fi','fs','floc','ft','fexp'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  // 체크박스 초기화
+  document.querySelectorAll('.cbf-item input[type=checkbox]').forEach(cb=>{ cb.checked=cb.value===''; });
+  ['fj-all','fi-all','fs-all','floc-all','fexp-all'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=true;});
+  ['fj-ds','fj-de','fj-ai','fj-sw','fj-med','fj-etc',
+   'fi-it','fi-bio','fi-med','fi-fin','fi-etc',
+   'fs-large','fs-mid','fs-startup','fs-public',
+   'floc-seoul','floc-gyeonggi','floc-incheon','floc-busan','floc-daejeon','floc-daegu','floc-others',
+   'fexp-new','fexp-both','fexp-exp'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
+  // 상태 초기화
+  _cbRole={all:true,vals:[],etc:false};
+  _cbIndustry={all:true,vals:[],etc:false};
+  _cbScale={all:true,vals:[]};
+  _cbLoc={all:true,vals:[],others:false};
+  _cbExp={all:true,vals:[]};
+  // 연봉 슬라이더
+  salaryMinFilter=0;
+  const slider=document.getElementById('salarySlider');
+  if(slider) slider.value=0;
+  const sliderVal=document.getElementById('salarySliderVal');
+  if(sliderVal) sliderVal.textContent='제한 없음';
+  // 마감임박 / 마감공고
+  urgentFilter=false;
+  closedFilter=false;
+  currentPage=1;
+  initKwTags();
+  render();
+}
+
 // 마감 포함 필터링 (ALL_JOBS 기준)
 function getFilteredAll(){
-  const fj=document.getElementById('fj').value;
-  const fi=document.getElementById('fi').value;
-  const fs=document.getElementById('fs').value;
-  const floc=document.getElementById('floc').value;
-  const ft=document.getElementById('ft').value;
-  const fexp=document.getElementById('fexp').value;
+  const ft=document.getElementById('ft')?.value||'';
   return ALL_JOBS.filter(j=>{
     if(!matchesGlobal(j))return false;
     if(!matchesKw(j))return false;
-    if(fj&&j.role!==fj)return false;
-    if(fi&&j.industry!==fi)return false;
+    if(!_cbRole.all){const rm=_cbRole.vals.some(v=>j.role===v||j.role?.includes(v));const em=_cbRole.etc&&!ROLE_FIXED_LIST.includes(j.role);if(!rm&&!em)return false;}
+    if(!_cbIndustry.all){const im=_cbIndustry.vals.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)));const em=_cbIndustry.etc&&!INDUSTRY_FIXED_LIST.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)));if(!im&&!em)return false;}
     if(fs&&j.scale!==fs)return false;
     if(floc&&j.location!==floc)return false;
     if(ft&&j.jobType!==ft)return false;
@@ -916,8 +1224,10 @@ async function tryLogin(){
     const role = await window._fb.signIn(email, pw);
     isSuperMode = (role==='super');
     _adminRole = role;
+    sessionStorage.setItem('ajs_session','1');
     closeLogin();
-    openAdmin();
+    // 관리자 대시보드 전체 페이지로 이동
+    window.location.href = 'admin.html';
   } catch(e) {
     let msg='이메일 또는 비밀번호가 올바르지 않습니다.';
     if(e.message==='접근 권한이 없는 계정입니다.') msg='관리자 권한이 없는 계정입니다.';
@@ -929,23 +1239,25 @@ async function tryLogin(){
 function adminLogout(){
   if(!confirm('로그아웃 하시겠습니까?'))return;
   window._fb?.signOut?.();
+  sessionStorage.removeItem('ajs_session');
   closeAdmin();
   isSuperMode=false;
   _adminRole=null;
 }
 
-// 새로고침 후 로그인 세션 자동 복원
+// 새로고침 후 로그인 세션 자동 복원 비활성화 — 브라우저 종료 시 세션 만료
 window.addEventListener('auth-state-changed', (e)=>{
   const {role} = e.detail;
+  const sessionAlive = sessionStorage.getItem('ajs_session');
+  if(!sessionAlive && role){
+    window._fb?.signOut?.();
+    return;
+  }
   _adminRole = role;
   if(role){
     isSuperMode = (role==='super');
-    const settingBtn = document.querySelector('.header-icon-btn[onclick="openLogin()"]');
-    if(settingBtn) settingBtn.setAttribute('onclick','openAdmin()');
   } else {
     isSuperMode = false;
-    const settingBtn = document.querySelector('.header-icon-btn[onclick="openAdmin()"]');
-    if(settingBtn) settingBtn.setAttribute('onclick','openLogin()');
   }
 });
 
@@ -1042,10 +1354,11 @@ function addKeyword(){
   refreshKwAdminTags();
 }
 function removeTempKw(i){tempKws.splice(i,1);refreshKwAdminTags();}
-function saveKeywords(){
+async function saveKeywords(){
   KWS=[...tempKws];save(SK.KWS,KWS);
   selKw.forEach(k=>{if(!KWS.includes(k))selKw.delete(k);});
   save(SK.SEL_KW,[...selKw]);
+  try{ await window._fb?.saveKeywords(KWS); }catch(e){ console.warn('[KW] Firestore 저장 실패',e); }
   closeAdmin();initKwTags();render();
 }
 
@@ -1295,6 +1608,77 @@ async function deleteSelected(){
   const ids=[...selectedIds];
   selectedIds.clear();
   await Promise.all(ids.map(id=>window._fb?.delete(id)));
+}
+
+/* ── 일괄 수정 모달 ── */
+function openBulkEditModal(){
+  if(!selectedIds.size)return;
+  const overlay=document.getElementById('bulkEditOverlay');
+  if(!overlay)return;
+  ['beDeadlineType','beJobType','beScale','beExperience'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('beDeadline').value='';
+  document.getElementById('beDeadlineRow').style.display='';
+  document.getElementById('beSalary').value='';
+  document.getElementById('beErr').style.display='none';
+  const btn=document.getElementById('beSaveBtn');
+  if(btn){btn.disabled=false;btn.textContent=`${selectedIds.size}개 공고 일괄 수정`;}
+  overlay.classList.add('open');
+}
+function closeBulkEditModal(){
+  document.getElementById('bulkEditOverlay')?.classList.remove('open');
+}
+function onBeDeadlineTypeChange(){
+  const t=document.getElementById('beDeadlineType').value;
+  document.getElementById('beDeadlineRow').style.display=(t==='always'||t==='untilFilled')?'none':'';
+}
+async function submitBulkEdit(){
+  const ids=[...selectedIds];
+  if(!ids.length)return;
+  const deadlineType=document.getElementById('beDeadlineType').value;
+  const jobType=document.getElementById('beJobType').value;
+  const scale=document.getElementById('beScale').value;
+  const experience=document.getElementById('beExperience').value;
+  const salary=document.getElementById('beSalary').value.trim();
+  const deadline=document.getElementById('beDeadline').value;
+  if(!deadlineType&&!jobType&&!scale&&!experience&&!salary){
+    const errEl=document.getElementById('beErr');
+    errEl.textContent='하나 이상의 항목을 선택하세요.';
+    errEl.style.display='block';
+    return;
+  }
+  document.getElementById('beErr').style.display='none';
+  const btn=document.getElementById('beSaveBtn');
+  btn.disabled=true;btn.textContent='저장 중…';
+  const scaleNames={large:'대기업',mid:'중소기업',startup:'스타트업',public:'공공기관'};
+  try{
+    const targets=CUSTOM_JOBS.filter(j=>ids.includes(String(j.id)));
+    await Promise.all(targets.map(j=>{
+      const updated={...j};
+      if(deadlineType){updated.deadlineType=deadlineType;updated.deadline=deadlineType==='always'?'9999-12-31':deadlineType==='untilFilled'?'9999-12-30':(deadline||j.deadline);}
+      if(jobType)updated.jobType=jobType;
+      if(scale){updated.scale=scale;updated.scaleName=scaleNames[scale]||scale;}
+      if(experience)updated.experience=experience;
+      if(salary)updated.salary=salary;
+      return window._fb?.save(updated);
+    }));
+    // 낙관적 업데이트
+    targets.forEach(j=>{
+      const idx=CUSTOM_JOBS.findIndex(c=>String(c.id)===String(j.id));
+      if(idx!==-1){
+        if(deadlineType){CUSTOM_JOBS[idx].deadlineType=deadlineType;CUSTOM_JOBS[idx].deadline=deadlineType==='always'?'9999-12-31':deadlineType==='untilFilled'?'9999-12-30':(deadline||CUSTOM_JOBS[idx].deadline);}
+        if(jobType)CUSTOM_JOBS[idx].jobType=jobType;
+        if(scale){CUSTOM_JOBS[idx].scale=scale;CUSTOM_JOBS[idx].scaleName=scaleNames[scale]||scale;}
+        if(experience)CUSTOM_JOBS[idx].experience=experience;
+        if(salary)CUSTOM_JOBS[idx].salary=salary;
+      }
+    });
+    rebuildJobs();selectedIds.clear();closeBulkEditModal();renderCustomJobList();render();
+  }catch(err){
+    const errEl=document.getElementById('beErr');
+    errEl.textContent='저장 중 오류: '+err.message;
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent=`${ids.length}개 공고 일괄 수정`;
+  }
 }
 
 function openJobManager(){
@@ -1672,28 +2056,96 @@ async function resetAllData(){
 }
 
 /* ── 피드백 ── */
+/* ── 피드백 모달 ── */
+let _fbType='general'; // 'general' | 'keyword'
+let _fbKws=[]; // 키워드 추가 요청 목록
+
+window.setFbType=function(type){
+  _fbType=type;
+  // 탭 활성화
+  document.querySelectorAll('.fb-type-tab').forEach(t=>t.classList.remove('active'));
+  const activeTab=document.getElementById('fbTab-'+type);
+  if(activeTab) activeTab.classList.add('active');
+  // 패널 전환
+  ['general','keyword'].forEach(t=>{
+    const p=document.getElementById('fbPanel-'+t);
+    if(p) p.style.display=t===type?'':'none';
+  });
+  document.getElementById('feedbackErr').style.display='none';
+};
+
+// 키워드 입력 처리
+window.handleKwInput=function(e){
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    addFbKw(e.target.value.replace(/,$/, '').trim());
+    e.target.value='';
+  }
+};
+
+function addFbKw(val){
+  if(!val) return;
+  const kws=val.split(/[,，、]/).map(k=>k.trim()).filter(k=>k&&!_fbKws.includes(k));
+  _fbKws=[..._fbKws,...kws];
+  renderFbKwTags();
+}
+
+window.removeFbKw=function(i){
+  _fbKws.splice(i,1);
+  renderFbKwTags();
+};
+
+function renderFbKwTags(){
+  const el=document.getElementById('fbKwTags');
+  if(!el) return;
+  el.innerHTML=_fbKws.map((k,i)=>
+    `<span class="fb-kw-tag">${k}<button onclick="removeFbKw(${i})">×</button></span>`
+  ).join('');
+}
+
 function openFeedback(){
-  document.getElementById('feedbackText').value='';
+  _fbType='general';
+  _fbKws=[];
+  // 초기화
+  const fields=['feedbackText','feedbackKwInput','feedbackKwNote'];
+  fields.forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderFbKwTags();
   document.getElementById('feedbackErr').style.display='none';
   document.getElementById('feedbackSubmitBtn').disabled=false;
   document.getElementById('feedbackSubmitBtn').textContent='전송하기';
+  setFbType('general');
   document.getElementById('feedbackModal').classList.add('open');
-  setTimeout(()=>document.getElementById('feedbackText').focus(),100);
+  setTimeout(()=>document.getElementById('feedbackText')?.focus(),100);
 }
+
 function closeFeedback(){
   document.getElementById('feedbackModal').classList.remove('open');
 }
+
 async function submitFeedback(){
-  const text=document.getElementById('feedbackText').value.trim();
   const errEl=document.getElementById('feedbackErr');
-  if(!text){errEl.style.display='block';return;}
-  errEl.style.display='none';
   const btn=document.getElementById('feedbackSubmitBtn');
+  let text='';
+
+  if(_fbType==='general'){
+    text=document.getElementById('feedbackText').value.trim();
+    if(!text){errEl.textContent='내용을 입력해주세요.';errEl.style.display='block';return;}
+  } else {
+    // 키워드 모드: 입력창에 아직 입력중인 값도 추가
+    const raw=document.getElementById('feedbackKwInput')?.value.trim();
+    if(raw) addFbKw(raw);
+    if(!_fbKws.length){errEl.textContent='키워드를 하나 이상 입력해주세요.';errEl.style.display='block';return;}
+    const note=document.getElementById('feedbackKwNote')?.value.trim();
+    text=`[키워드 추가 요청] ${_fbKws.join(', ')}${note?'
+메모: '+note:''}`;
+  }
+
+  errEl.style.display='none';
   btn.disabled=true;btn.textContent='전송 중…';
   try{
     await window._fb.saveFeedback(text);
     btn.textContent='✅ 전송 완료!';
-    setTimeout(()=>closeFeedback(),1200);
+    setTimeout(()=>closeFeedback(),1300);
   }catch(e){
     errEl.textContent='전송 중 오류가 발생했습니다. 다시 시도해주세요.';
     errEl.style.display='block';
@@ -1802,7 +2254,7 @@ async function loadNoticeViewerList(){
     save(NOTICE_SEEN_KEY,published[0].id);
     document.getElementById('noticeDot').style.display='none';
     el.innerHTML=published.map(n=>{
-      const isUrg=n.noticeType==='긴급';
+      const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
       const dt=new Date(n.createdAt);
       const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
       const preview=n.content.replace(/\n/g,' ').trim();
@@ -1827,7 +2279,7 @@ async function openNoticeDetail(id){
   }
   const n=_noticeDetailCache.find(x=>x.id===id);
   if(!n)return;
-  const isUrg=n.noticeType==='긴급';
+  const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
   const dt=new Date(n.createdAt);
   const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
   document.getElementById('noticeDetailContent').innerHTML=`
@@ -1923,7 +2375,7 @@ async function loadNoticeAdminList(){
     const notices=await window._fb.getNotices();
     if(!notices.length){el.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text-hint);font-size:14px">등록된 공지가 없습니다.</div>';return;}
     el.innerHTML=notices.map(n=>{
-      const isUrg=n.noticeType==='긴급';
+      const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
       const dt=new Date(n.createdAt);
       const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
       return `<div style="background:var(--bg-card);border:1px solid ${isUrg?'rgba(184,64,64,0.3)':'var(--border)'};border-left:3px solid ${isUrg?'var(--red)':'var(--navy)'};border-radius:var(--radius-md);padding:14px 16px">

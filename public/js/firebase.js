@@ -1,6 +1,6 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, setDoc, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, setDoc, doc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const cfg = window.APP_CONFIG?.firebase;
@@ -114,6 +114,19 @@ window._fb = {
     return onSnapshot(collection(db,"notices"),(snap)=>{
       const notices=snap.docs.map(d=>d.data()).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
       cb(notices);
+    });
+  },
+  // ── 전역 키워드 (app_settings/keywords) ──
+  saveKeywords: async (kws) => {
+    await setDoc(doc(db,"app_settings","keywords"),{list:kws,updatedAt:new Date().toISOString()});
+  },
+  getKeywords: async () => {
+    try{ const snap=await getDoc(doc(db,"app_settings","keywords")); return snap.exists()?snap.data().list:null; }
+    catch{ return null; }
+  },
+  subscribeKeywords: (cb) => {
+    return onSnapshot(doc(db,"app_settings","keywords"),(snap)=>{
+      if(snap.exists()) cb(snap.data().list);
     });
   },
   // 전체 삭제 후 새로 저장 (20개씩 배치)

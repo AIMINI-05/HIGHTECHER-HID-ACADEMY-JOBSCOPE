@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Oracle Academy 채용공고 탐색기</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
 
 <!-- Firebase: type="module" 필수 유지 -->
@@ -29,7 +30,11 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
         <span class="notif-dot" id="noticeDot" style="display:none"></span>
       </button>
-      <button class="header-icon-btn" onclick="openLogin()" title="관리자 설정">
+      <button class="header-icon-btn header-theme-btn" onclick="toggleTheme()" title="테마 전환" id="headerThemeBtn">
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      </button>
+      <button class="header-icon-btn" onclick="window.location.href='admin.html'" title="관리자 설정">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
     </div>
@@ -37,103 +42,196 @@
 </header>
 
 <div class="hero">
+  <!-- 배경 장식 요소들 -->
+  <div class="hero-bg-orb hero-orb-1"></div>
+  <div class="hero-bg-orb hero-orb-2"></div>
+  <div class="hero-bg-orb hero-orb-3"></div>
+  <div class="hero-grid-lines"></div>
+
   <div class="hero-inner">
-    <h1><span class="hero-kicker">Oracle Academy</span><br>데이터 · AI · <em>헬스케어</em><br>채용 공고를 한눈에</h1>
-    <p class="hero-desc">관심 키워드 기반으로 맞춤 채용 공고를 확인하세요</p>
-    <div class="stats-row" id="statsRow"></div>
+    <div class="hero-left">
+      <div class="hero-eyebrow">
+        <span class="hero-eyebrow-dot"></span>
+        FOR ORACLE ACADEMY MEMBERS
+      </div>
+      <h1>
+        데이터 · AI · 헬스케어<br>
+        <em>맞춤 채용</em>을<br>
+        한눈에 만나보세요
+      </h1>
+      <p class="hero-sub-desc">관심 키워드 기반으로 맞춤 채용 공고를 한눈에 확인하세요</p>
+      <div class="stats-row" id="statsRow"></div>
+    </div>
+    <div class="hero-right">
+      <div class="hero-visual">
+        <div class="hero-vis-card hero-vis-card-1">
+          <div class="hvc-dot green"></div>
+          <div class="hvc-content">
+            <div class="hvc-label">전체 공고</div>
+            <div class="hvc-val" id="heroTotalVal">—</div>
+          </div>
+        </div>
+        <div class="hero-vis-card hero-vis-card-2">
+          <div class="hvc-dot blue"></div>
+          <div class="hvc-content">
+            <div class="hvc-label">매칭 공고</div>
+            <div class="hvc-val" id="heroMatchVal">—</div>
+          </div>
+        </div>
+        <div class="hero-vis-card hero-vis-card-3">
+          <div class="hvc-dot red"></div>
+          <div class="hvc-content">
+            <div class="hvc-label">마감 임박</div>
+            <div class="hvc-val" id="heroUrgentVal">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
-<main class="main">
-  <!-- 통합 검색창 + 세부 필터 드롭다운 -->
-  <div class="search-and-filter-wrap">
-    <div class="search-wrap">
-      <div class="search-input-wrap">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="globalSearch" placeholder="공고 제목, 회사명, 직무, 키워드 통합 검색…" oninput="onGlobalSearch()" autocomplete="off" spellcheck="false">
-        <button class="search-clear" id="searchClear" onclick="clearGlobalSearch()">✕</button>
+<div class="main-layout">
+
+  <!-- ── 좌측 사이드바: 키워드 + 체크박스 필터 ── -->
+  <aside class="filter-sidebar">
+
+    <!-- 키워드 패널 (버튼 제거, 태그만) -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-title">관심 키워드</div>
+      <div class="kw-tags" id="kwTags"></div>
+    </div>
+
+    <!-- 체크박스 필터 패널 -->
+    <div class="sidebar-section sidebar-filter-panel">
+      <div class="sidebar-section-title">세부 필터</div>
+
+      <!-- 직무: 5개 고정 + 기타 -->
+      <div class="cbf-group">
+        <div class="cbf-label">직무</div>
+        <div class="cbf-list">
+          <label class="cbf-item"><input type="checkbox" id="fj-all" value="" checked onchange="onCbRoleFilter(this)"> 전체</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-ds" value="데이터 사이언티스트" onchange="onCbRoleFilter(this)"> 데이터 사이언티스트</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-de" value="데이터 엔지니어" onchange="onCbRoleFilter(this)"> 데이터 엔지니어</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-ai" value="AI 엔지니어" onchange="onCbRoleFilter(this)"> AI 엔지니어</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-sw" value="소프트웨어 개발" onchange="onCbRoleFilter(this)"> 소프트웨어 개발</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-med" value="의료·헬스케어" onchange="onCbRoleFilter(this)"> 의료·헬스케어</label>
+          <label class="cbf-item"><input type="checkbox" id="fj-etc" value="__etc__" onchange="onCbRoleFilter(this)"> 기타 직무</label>
+        </div>
+        <select id="fj" style="display:none"><option value="">전체</option></select>
       </div>
-      <button class="filter-inline-btn" id="filterInlineBtn" onclick="toggleFilter()">
-        세부 필터 <span class="fib-arrow">▼</span>
+
+      <!-- 업종 -->
+      <div class="cbf-group">
+        <div class="cbf-label">업종</div>
+        <div class="cbf-list" id="cbf-industry">
+          <label class="cbf-item"><input type="checkbox" id="fi-all" value="" checked onchange="onCbIndustryFilter(this)"> 전체</label>
+          <label class="cbf-item"><input type="checkbox" id="fi-it" value="IT·SW" onchange="onCbIndustryFilter(this)"> IT·SW</label>
+          <label class="cbf-item"><input type="checkbox" id="fi-bio" value="바이오·헬스케어" onchange="onCbIndustryFilter(this)"> 바이오·헬스케어</label>
+          <label class="cbf-item"><input type="checkbox" id="fi-med" value="의료·제약" onchange="onCbIndustryFilter(this)"> 의료·제약</label>
+          <label class="cbf-item"><input type="checkbox" id="fi-fin" value="금융" onchange="onCbIndustryFilter(this)"> 금융</label>
+          <label class="cbf-item"><input type="checkbox" id="fi-etc" value="__etc__" onchange="onCbIndustryFilter(this)"> 기타</label>
+        </div>
+        <select id="fi" style="display:none"><option value="">전체</option></select>
+      </div>
+
+      <!-- 기업 규모: 5개 -->
+      <div class="cbf-group">
+        <div class="cbf-label">기업 규모</div>
+        <div class="cbf-list">
+          <label class="cbf-item"><input type="checkbox" id="fs-all" value="" checked onchange="onCbScaleFilter(this)"> 전체</label>
+          <label class="cbf-item"><input type="checkbox" id="fs-large" value="large" onchange="onCbScaleFilter(this)"> 대기업</label>
+          <label class="cbf-item"><input type="checkbox" id="fs-mid" value="mid" onchange="onCbScaleFilter(this)"> 중소기업</label>
+          <label class="cbf-item"><input type="checkbox" id="fs-startup" value="startup" onchange="onCbScaleFilter(this)"> 스타트업</label>
+          <label class="cbf-item"><input type="checkbox" id="fs-public" value="public" onchange="onCbScaleFilter(this)"> 공기업·공공기관</label>
+        </div>
+        <select id="fs" style="display:none">
+          <option value="">전체</option>
+          <option value="large">대기업</option>
+          <option value="mid">중소기업</option>
+          <option value="startup">스타트업</option>
+          <option value="public">공기업·공공기관</option>
+        </select>
+      </div>
+
+      <!-- 근무 지역 -->
+      <div class="cbf-group">
+        <div class="cbf-label">근무 지역</div>
+        <div class="cbf-list">
+          <label class="cbf-item"><input type="checkbox" id="floc-all" value="" checked onchange="onCbLocFilter(this)"> 전국</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-seoul" value="서울" onchange="onCbLocFilter(this)"> 서울</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-gyeonggi" value="경기" onchange="onCbLocFilter(this)"> 경기</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-incheon" value="인천" onchange="onCbLocFilter(this)"> 인천</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-busan" value="부산" onchange="onCbLocFilter(this)"> 부산</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-daejeon" value="대전" onchange="onCbLocFilter(this)"> 대전</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-daegu" value="대구" onchange="onCbLocFilter(this)"> 대구</label>
+          <label class="cbf-item"><input type="checkbox" id="floc-others" value="__others__" onchange="onCbLocFilter(this)"> 기타 지역</label>
+        </div>
+        <select id="floc" style="display:none"><option value="">전국</option></select>
+      </div>
+
+      <!-- 경력 -->
+      <div class="cbf-group">
+        <div class="cbf-label">경력</div>
+        <div class="cbf-list">
+          <label class="cbf-item"><input type="checkbox" id="fexp-all" value="" checked onchange="onCbExpFilter(this)"> 전체</label>
+          <label class="cbf-item"><input type="checkbox" id="fexp-new" value="신입" onchange="onCbExpFilter(this)"> 신입</label>
+          <label class="cbf-item"><input type="checkbox" id="fexp-both" value="신입·경력" onchange="onCbExpFilter(this)"> 신입·경력</label>
+          <label class="cbf-item"><input type="checkbox" id="fexp-exp" value="경력" onchange="onCbExpFilter(this)"> 경력</label>
+        </div>
+        <select id="fexp" style="display:none">
+          <option value="">전체</option>
+          <option value="신입">신입</option>
+          <option value="신입·경력">신입·경력</option>
+          <option value="경력">경력 (n년)</option>
+        </select>
+      </div>
+
+      <!-- hidden selects (기존 호환) -->
+      <select id="ft" style="display:none"><option value="">전체</option><option value="정규직">정규직</option><option value="계약직">계약직</option><option value="인턴">인턴</option></select>
+
+      <button id="filterResetBtn" onclick="resetAllFilters()" style="display:none;align-items:center;justify-content:center;gap:5px;padding:9px 12px;font-size:12px;font-weight:600;border:1px solid var(--green);border-radius:20px;background:transparent;color:var(--green);cursor:pointer;font-family:inherit;transition:all .15s;margin-top:8px;width:100%">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+        필터 초기화
       </button>
     </div>
+  </aside>
 
-    <div class="filter-collapsible collapsed" id="filterCollapsible">
-      <div class="filter-bar">
-        <div class="fg">
-          <label>직무</label>
-          <select id="fj" onchange="render()"><option value="">전체</option></select>
-        </div>
-        <div class="fg">
-          <label>업종</label>
-          <select id="fi" onchange="render()"><option value="">전체</option></select>
-        </div>
-        <div class="fg">
-          <label>기업 규모</label>
-          <select id="fs" onchange="render()">
-            <option value="">전체</option>
-            <option value="large">대기업</option>
-            <option value="mid">중소기업</option>
-            <option value="startup">스타트업</option>
-            <option value="public">공기업·공공기관</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>근무 지역</label>
-          <select id="floc" onchange="render()"><option value="">전국</option></select>
-        </div>
-        <div class="fg">
-          <label>근무 형태</label>
-          <select id="ft" onchange="render()">
-            <option value="">전체</option>
-            <option value="정규직">정규직</option>
-            <option value="계약직">계약직</option>
-            <option value="인턴">인턴</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>경력 구분</label>
-          <select id="fexp" onchange="render()">
-            <option value="">전체</option>
-            <option value="신입">신입</option>
-            <option value="신입·경력">신입·경력</option>
-            <option value="경력">경력 (n년)</option>
-          </select>
+  <!-- ── 우측 메인 콘텐츠 ── -->
+  <main class="main-content">
+    <!-- 검색창 -->
+    <div class="search-and-filter-wrap" style="margin-bottom:1.25rem">
+      <div class="search-wrap">
+        <div class="search-input-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="globalSearch" placeholder="공고 제목, 회사명, 직무, 키워드 통합 검색…" oninput="onGlobalSearch()" autocomplete="off" spellcheck="false">
+          <button class="search-clear" id="searchClear" onclick="clearGlobalSearch()">✕</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="kw-panel">
-    <div class="kw-panel-head">
-      <span class="kw-panel-title">관심 키워드</span>
-      <div class="kw-actions">
-        <button class="kw-btn" onclick="setMatchMode('any')" id="modeAnyBtn">하나라도 포함</button>
-        <button class="kw-btn" onclick="setMatchMode('all')" id="modeAllBtn">모두 포함</button>
-        <button class="kw-btn" onclick="selectAll()">전체 선택</button>
-        <button class="kw-btn" onclick="clearAll()">전체 해제</button>
+    <!-- 오늘의 추천 섹션 (JS에서 렌더링) -->
+    <div id="todayRecommendSection"></div>
+
+    <button class="filter-toggle-btn" id="filterToggleBtn" style="display:none"></button>
+
+    <div class="result-bar">
+      <div class="result-info">
+        <strong id="rCount">0</strong>개 공고
+        <span class="urgent-pill" id="urgentPill" style="display:none"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <select class="sort-sel" id="sortSel" onchange="render()">
+          <option value="dday">마감임박순</option>
+          <option value="recent">최신순</option>
+        </select>
       </div>
     </div>
-    <div class="kw-tags" id="kwTags"></div>
-  </div>
 
-  <button class="filter-toggle-btn" id="filterToggleBtn" style="display:none"></button>
+    <div id="mainList"></div>
+    <div id="jkSourceBadge" style="display:none"></div>
+  </main>
 
-  <div class="result-bar">
-    <div class="result-info">
-      <strong id="rCount">0</strong>개 공고
-      <span class="urgent-pill" id="urgentPill" style="display:none"></span>
-    </div>
-    <select class="sort-sel" id="sortSel" onchange="render()">
-      <option value="dday">마감임박순</option>
-      <option value="recent">최신순</option>
-    </select>
-  </div>
-
-  <div id="mainList"></div>
-  <!-- 잡코리아 출처 표기 (가이드 필수 사항) -->
-  <div id="jkSourceBadge" style="display:none"></div>
-</main>
+</div>
 
 <!-- 상세 사이드 패널 -->
 <div class="detail-overlay" id="detailOverlay" onclick="closeDetail()"></div>
@@ -144,21 +242,25 @@
       <div class="detail-title" id="detailTitle"></div>
       <div class="detail-company" id="detailCompany"></div>
     </div>
-    <button id="detailEditToggleBtn" class="detail-edit-toggle-btn" style="display:none" onclick="toggleDetailEdit()">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      수정
-    </button>
+    <div id="detailEditBtnGroup" style="display:none;align-items:center;gap:6px;flex-shrink:0">
+      <button id="detailCancelBtn" class="detail-cancel-btn-header" onclick="cancelDetailEdit()" style="display:none">
+        × 취소
+      </button>
+      <button id="detailEditToggleBtn" class="detail-edit-toggle-btn" onclick="toggleDetailEdit()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        수정
+      </button>
+    </div>
     <button class="detail-close" onclick="closeDetail()">×</button>
   </div>
   <div class="detail-body" id="detailBody"></div>
   <div class="detail-footer">
     <div id="detailJkDisclaimer" style="display:none"></div>
-    <div id="detailEditFooter" style="display:none;gap:8px;margin-bottom:10px;display:none">
+    <div id="detailEditFooter" style="display:none;gap:8px;margin-bottom:10px">
       <button class="detail-save-btn" onclick="saveDetailEdit()">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
         저장
       </button>
-      <button class="detail-cancel-btn" onclick="cancelDetailEdit()">취소</button>
     </div>
     <a class="detail-apply-btn" id="detailApplyBtn" href="#" target="_blank" rel="noopener">지원공고 바로가기 →</a>
   </div>
@@ -166,15 +268,41 @@
 
 <!-- 피드백 모달 -->
 <div class="modal-overlay" id="feedbackModal">
-  <div class="modal" style="max-width:420px">
+  <div class="modal" style="max-width:440px">
     <div class="modal-head">
-      <h2>피드백이 있나요?</h2>
+      <h2>의견을 남겨주세요</h2>
       <button class="mclose" onclick="closeFeedback()">×</button>
     </div>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px;line-height:1.7">사이트 이용 중 불편한 점, 개선 아이디어, 원하는 기능 등 자유롭게 남겨주세요.<br>소중한 의견을 반영하겠습니다 😊</p>
-    <textarea id="feedbackText" placeholder="내용을 입력해주세요…" style="width:100%;height:130px;font-size:13px;font-family:inherit;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-surface);color:var(--text-primary);resize:vertical;line-height:1.7;transition:border-color 0.15s;outline:none" onfocus="this.style.borderColor='var(--navy-light)'" onblur="this.style.borderColor='var(--border)'"></textarea>
-    <div class="err-msg" id="feedbackErr" style="margin-top:6px">내용을 입력해주세요.</div>
-    <div class="mbtns" style="margin-top:14px">
+
+    <!-- 탭 선택 -->
+    <div class="fb-type-tabs">
+      <button class="fb-type-tab active" id="fbTab-general" onclick="setFbType('general')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        일반 피드백
+      </button>
+      <button class="fb-type-tab" id="fbTab-keyword" onclick="setFbType('keyword')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        키워드 추가 요청
+      </button>
+    </div>
+
+    <!-- 일반 피드백 패널 -->
+    <div id="fbPanel-general">
+      <p class="fb-desc">사이트 이용 중 불편한 점, 개선 아이디어, 원하는 기능 등 자유롭게 남겨주세요.<br>소중한 의견을 반영하겠습니다 😊</p>
+      <textarea id="feedbackText" placeholder="내용을 입력해주세요…" class="fb-textarea"></textarea>
+    </div>
+
+    <!-- 키워드 추가 요청 패널 -->
+    <div id="fbPanel-keyword" style="display:none">
+      <p class="fb-desc">추가를 원하는 관심 키워드를 입력해주세요.<br>검토 후 키워드 목록에 반영합니다 🏷️</p>
+      <input type="text" id="feedbackKwInput" placeholder="예: 머신러닝, NLP, 의료 AI…" class="fb-kw-input" onkeydown="handleKwInput(event)">
+      <div class="fb-kw-tags" id="fbKwTags"></div>
+      <p style="font-size:11px;color:var(--text-hint);margin-top:8px">Enter 또는 쉼표(,)로 여러 키워드를 추가할 수 있습니다.</p>
+      <textarea id="feedbackKwNote" placeholder="추가 의견이 있으면 남겨주세요 (선택)" class="fb-textarea" style="height:80px;margin-top:12px"></textarea>
+    </div>
+
+    <div class="err-msg" id="feedbackErr" style="margin-top:8px">내용을 입력해주세요.</div>
+    <div class="mbtns" style="margin-top:16px">
       <button class="mbtn-p" id="feedbackSubmitBtn" onclick="submitFeedback()">전송하기</button>
       <button class="mbtn-s" onclick="closeFeedback()">취소</button>
     </div>
@@ -303,15 +431,82 @@
         <button class="mbtn-s" onclick="closeAdmin()">닫기</button>
       </div>
     </div>
-    <div class="theme-toggle-wrap" style="border-top:1px solid var(--border);padding-top:12px;margin-top:8px">
-      <button class="theme-toggle-btn" onclick="toggleTheme()">
-        <span class="theme-toggle-track">
-          <span class="theme-toggle-thumb"></span>
-          <span class="theme-icon theme-icon-moon">🌙</span>
-          <span class="theme-icon theme-icon-sun">☀️</span>
-        </span>
-        <span class="theme-toggle-label">라이트 모드</span>
-      </button>
+    <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);padding-top:12px;margin-top:8px;gap:12px">
+      <button class="mbtn-s" onclick="resetAllData()" style="color:var(--red);border-color:rgba(184,64,64,0.3);flex-shrink:0">🗑 데이터 초기화</button>
+      <div class="theme-toggle-wrap" style="margin:0;border:none;padding:0">
+        <button class="theme-toggle-btn" onclick="toggleTheme()">
+          <span class="theme-toggle-track">
+            <span class="theme-toggle-thumb"></span>
+            <span class="theme-icon theme-icon-moon">🌙</span>
+            <span class="theme-icon theme-icon-sun">☀️</span>
+          </span>
+          <span class="theme-toggle-label">라이트 모드</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 일괄 수정 모달 -->
+<div class="modal-overlay" id="bulkEditOverlay">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <h2>✏️ 일괄 수정</h2>
+      <button class="mclose" onclick="closeBulkEditModal()">×</button>
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px">수정할 항목만 선택하세요. 빈 항목은 변경되지 않습니다.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="fg">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">마감일 유형</label>
+        <select id="beDeadlineType" class="de-input" onchange="onBeDeadlineTypeChange()">
+          <option value="">변경 안함</option>
+          <option value="date">날짜 지정</option>
+          <option value="always">상시채용</option>
+          <option value="untilFilled">채용시 마감</option>
+        </select>
+      </div>
+      <div class="fg" id="beDeadlineRow">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">마감일</label>
+        <input type="date" id="beDeadline" class="de-input">
+      </div>
+      <div class="fg">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">고용형태</label>
+        <select id="beJobType" class="de-input">
+          <option value="">변경 안함</option>
+          <option value="정규직">정규직</option>
+          <option value="계약직">계약직</option>
+          <option value="인턴">인턴</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">기업 규모</label>
+        <select id="beScale" class="de-input">
+          <option value="">변경 안함</option>
+          <option value="large">대기업</option>
+          <option value="mid">중소기업</option>
+          <option value="startup">스타트업</option>
+          <option value="public">공공기관</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">경력</label>
+        <select id="beExperience" class="de-input">
+          <option value="">변경 안함</option>
+          <option value="신입">신입</option>
+          <option value="경력">경력</option>
+          <option value="신입·경력">신입·경력</option>
+          <option value="무관">무관</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">연봉 (직접 입력)</label>
+        <input type="text" id="beSalary" class="de-input" placeholder="예: 면접 후 결정, 4,000만원 이상">
+      </div>
+    </div>
+    <div class="err-msg" id="beErr" style="margin-top:10px;display:none">하나 이상의 항목을 선택하세요.</div>
+    <div class="mbtns" style="margin-top:16px">
+      <button class="mbtn-s" onclick="closeBulkEditModal()">취소</button>
+      <button class="btn-primary" id="beSaveBtn" onclick="submitBulkEdit()">일괄 수정</button>
     </div>
   </div>
 </div>

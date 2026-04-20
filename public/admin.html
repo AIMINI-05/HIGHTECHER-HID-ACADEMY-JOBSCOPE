@@ -1,0 +1,1830 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 대시보드 — Academy Job Scope</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<script src="js/config.js"></script>
+<script type="module" src="js/firebase.js"></script>
+<style>
+/* ── Reset & Variables ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0E1E35;
+  --sidebar:#081526;
+  --sidebar-border:rgba(255,255,255,0.06);
+  --surface:rgba(255,255,255,0.04);
+  --surface-hover:rgba(255,255,255,0.07);
+  --card:#0F2033;
+  --card-border:rgba(255,255,255,0.08);
+  --text:#E8EDF5;
+  --text-2:#8B92A8;
+  --text-3:#4F5670;
+  --accent:#4F8EF7;
+  --accent-2:#38D9A9;
+  --red:#F76F6F;
+  --orange:#F7A24F;
+  --navy:#1A3A6B;
+  --radius:10px;
+  --radius-lg:14px;
+  --shadow:0 4px 24px rgba(0,0,0,0.4);
+  --transition:0.2s ease;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;display:flex;overflow:hidden;height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{
+  width:220px;flex-shrink:0;
+  background:var(--sidebar);
+  border-right:1px solid var(--sidebar-border);
+  display:flex;flex-direction:column;
+  height:100vh;overflow:hidden;
+  position:relative;z-index:20;
+}
+.sb-logo{
+  padding:22px 20px 20px;
+  display:flex;align-items:center;gap:10px;
+  border-bottom:1px solid var(--sidebar-border);
+}
+.sb-logo-mark{
+  width:32px;height:32px;
+  background:linear-gradient(135deg,#4F8EF7,#38D9A9);
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.sb-logo-mark img{width:70%;height:70%;object-fit:contain;filter:brightness(10)}
+.sb-logo-text{font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.3px;line-height:1.2}
+.sb-logo-sub{font-size:10px;color:var(--text-3);font-weight:400;letter-spacing:0.2px}
+.sb-role-badge{
+  margin:14px 16px;
+  padding:6px 10px;
+  background:rgba(79,142,247,0.12);
+  border:1px solid rgba(79,142,247,0.25);
+  border-radius:6px;
+  font-size:11px;font-weight:600;
+  color:var(--accent);letter-spacing:0.5px;
+  display:flex;align-items:center;gap:6px;
+}
+.sb-role-badge .dot{width:6px;height:6px;background:var(--accent-2);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.sb-nav{flex:1;overflow-y:auto;padding:8px 12px}
+.sb-section{font-size:10px;font-weight:600;color:var(--text-3);letter-spacing:1px;text-transform:uppercase;padding:14px 8px 6px}
+.sb-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 10px;border-radius:8px;
+  font-size:13px;font-weight:500;color:var(--text-2);
+  cursor:pointer;transition:all var(--transition);
+  border:none;background:none;width:100%;text-align:left;
+  position:relative;
+}
+.sb-item:hover{background:var(--surface-hover);color:var(--text)}
+.sb-item.active{background:rgba(79,142,247,0.15);color:var(--accent)}
+.sb-item.active::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:18px;background:var(--accent);border-radius:2px;
+}
+.sb-item svg{flex-shrink:0;opacity:0.7}
+.sb-item.active svg{opacity:1}
+.sb-badge{
+  margin-left:auto;background:var(--accent);color:#fff;
+  font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;
+  min-width:20px;text-align:center;
+}
+.sb-item.danger{color:var(--red)}
+.sb-item.danger:hover{background:rgba(247,111,111,0.1)}
+.sb-footer{padding:14px 12px;border-top:1px solid var(--sidebar-border)}
+
+/* ── Main Content ── */
+.main{flex:1;display:flex;flex-direction:column;height:100vh;overflow:hidden}
+.topbar{
+  height:58px;flex-shrink:0;
+  background:var(--sidebar);
+  border-bottom:1px solid var(--sidebar-border);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;gap:16px;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.topbar-title{font-size:16px;font-weight:700;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--text-3)}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.topbar-email{font-size:12px;color:var(--text-2)}
+.topbar-btn{
+  display:flex;align-items:center;gap:6px;
+  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:600;
+  border:1px solid var(--card-border);background:var(--surface);
+  color:var(--text-2);cursor:pointer;font-family:inherit;
+  transition:all var(--transition);
+}
+.topbar-btn:hover{background:var(--surface-hover);color:var(--text)}
+.topbar-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.topbar-btn.primary:hover{opacity:0.9}
+.topbar-btn.danger{border-color:rgba(247,111,111,0.3);color:var(--red)}
+.topbar-btn.danger:hover{background:rgba(247,111,111,0.1)}
+
+.content{flex:1;overflow-y:auto;padding:24px}
+
+/* ── Login Screen ── */
+.login-screen{
+  position:fixed;inset:0;background:#081526;
+  display:flex;align-items:center;justify-content:center;z-index:1000;
+}
+.login-card{
+  width:380px;background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius-lg);padding:36px 32px;
+}
+.login-card h1{font-size:22px;font-weight:800;color:var(--text);margin-bottom:6px}
+.login-card p{font-size:13px;color:var(--text-2);margin-bottom:28px}
+.lf-group{margin-bottom:16px}
+.lf-group label{display:block;font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:0.5px;margin-bottom:6px;text-transform:uppercase}
+.lf-group input{
+  width:100%;padding:11px 14px;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text);border-radius:8px;
+  font-size:14px;font-family:inherit;outline:none;transition:border-color var(--transition);
+}
+.lf-group input:focus{border-color:var(--accent)}
+.lf-group input::placeholder{color:var(--text-3)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:40px}
+.pw-eye{
+  position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;
+  display:flex;align-items:center;
+}
+.lf-err{font-size:12px;color:var(--red);margin:8px 0 0;display:none}
+.lf-btn{
+  width:100%;padding:12px;background:var(--accent);color:#fff;
+  border:none;border-radius:8px;font-size:14px;font-weight:700;
+  font-family:inherit;cursor:pointer;margin-top:8px;transition:opacity var(--transition);
+}
+.lf-btn:hover{opacity:0.9}
+.lf-btn:disabled{opacity:0.5;cursor:not-allowed}
+
+/* ── Dashboard ── */
+.page{display:none}
+.page.active{display:block}
+
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:1100px){.stat-grid{grid-template-columns:repeat(2,1fr)}}
+.stat-card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius-lg);padding:18px 20px;
+  position:relative;overflow:hidden;
+}
+.stat-card::after{
+  content:'';position:absolute;top:0;right:0;
+  width:80px;height:100%;
+  background:linear-gradient(135deg,transparent 60%,rgba(79,142,247,0.04));
+  pointer-events:none;
+}
+.stat-label{font-size:11px;font-weight:500;color:var(--text-3);letter-spacing:0.4px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.stat-label svg{opacity:0.6}
+.stat-val{font-size:30px;font-weight:800;color:var(--text);letter-spacing:-1px;line-height:1}
+.stat-val.blue{color:var(--accent)}
+.stat-val.green{color:var(--accent-2)}
+.stat-val.red{color:var(--red)}
+.stat-val.orange{color:var(--orange)}
+.stat-sub{font-size:11px;color:var(--text-3);margin-top:6px}
+.stat-sub strong{color:var(--accent-2)}
+
+/* ── Section ── */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px}
+.section-title span{font-size:12px;color:var(--text-3);font-weight:400}
+
+/* ── Chart ── */
+.chart-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:24px}
+@media(max-width:1000px){.chart-grid{grid-template-columns:1fr}}
+.chart-card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius-lg);padding:20px;
+}
+.chart-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px}
+.chart-wrap{height:180px;display:flex;align-items:flex-end;gap:4px;padding-bottom:8px;overflow-x:auto}
+.bar-item{flex:1;min-width:22px;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:default}
+.bar-fill{
+  width:100%;border-radius:4px 4px 0 0;
+  background:rgba(79,142,247,0.25);border:1px solid rgba(79,142,247,0.3);
+  transition:background var(--transition);min-height:2px;
+  position:relative;
+}
+.bar-fill.today{background:var(--accent);border-color:var(--accent)}
+.bar-fill:hover{background:rgba(79,142,247,0.5)}
+.bar-fill.today:hover{opacity:0.85}
+.bar-label{font-size:9px;color:var(--text-3);white-space:nowrap}
+
+/* ── Keyword bars ── */
+.kw-bar-item{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.kw-bar-name{font-size:12px;color:var(--text-2);width:72px;flex-shrink:0;text-align:right}
+.kw-bar-track{flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden}
+.kw-bar-fill{height:100%;border-radius:4px;background:var(--accent);transition:width 0.8s ease}
+.kw-bar-num{font-size:11px;color:var(--text-3);min-width:24px;text-align:right}
+
+/* ── Crawl status ── */
+.crawl-card{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;
+}
+.crawl-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.crawl-row{
+  display:grid;grid-template-columns:16px 130px 1fr auto auto auto;
+  align-items:center;gap:12px;
+  padding:13px 0;border-bottom:1px solid var(--sidebar-border);
+}
+.crawl-row:last-child{border-bottom:none}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.green{background:#38D9A9}
+.dot.red{background:var(--red)}
+.dot.gray{background:var(--text-3)}
+.crawl-site{font-size:13px;font-weight:500;color:var(--text)}
+.crawl-count{font-size:12px;color:var(--text-2)}
+.crawl-time{font-size:12px;color:var(--text-3)}
+.crawl-err{font-size:12px}
+.crawl-err.ok{color:var(--text-3)}
+.crawl-err.bad{color:var(--red)}
+.crawl-log-btn{
+  font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid var(--card-border);
+  background:none;color:var(--text-3);cursor:pointer;font-family:inherit;
+  transition:all var(--transition);
+}
+.crawl-log-btn:hover{background:var(--surface-hover);color:var(--text)}
+
+/* ── Job Manager ── */
+.jm-toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.jm-search{
+  flex:1;min-width:200px;position:relative;
+}
+.jm-search input{
+  width:100%;padding:9px 14px 9px 36px;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text);border-radius:8px;
+  font-size:13px;font-family:inherit;outline:none;transition:border-color var(--transition);
+}
+.jm-search input:focus{border-color:var(--accent)}
+.jm-search input::placeholder{color:var(--text-3)}
+.jm-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);opacity:0.4;pointer-events:none}
+.jm-tab-group{display:flex;gap:4px;background:var(--surface);border-radius:8px;padding:3px}
+.jm-tab{
+  padding:6px 14px;border-radius:6px;font-size:12px;font-weight:500;
+  border:none;background:none;color:var(--text-2);cursor:pointer;font-family:inherit;
+  transition:all var(--transition);
+}
+.jm-tab.active{background:var(--card);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,0.3)}
+.action-btn{
+  display:flex;align-items:center;gap:6px;padding:8px 14px;
+  border-radius:8px;font-size:12px;font-weight:600;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text-2);cursor:pointer;font-family:inherit;
+  transition:all var(--transition);white-space:nowrap;
+}
+.action-btn:hover{background:var(--surface-hover);color:var(--text)}
+.action-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.action-btn.primary:hover{opacity:0.9}
+.action-btn.danger{border-color:rgba(247,111,111,0.3);color:var(--red)}
+.action-btn.danger:hover{background:rgba(247,111,111,0.1)}
+.action-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+.jobs-table-wrap{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-lg);overflow:hidden}
+.jobs-table{width:100%;border-collapse:collapse}
+.jobs-table th{
+  font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:0.5px;
+  text-transform:uppercase;text-align:left;padding:11px 14px;
+  background:rgba(255,255,255,0.02);border-bottom:1px solid var(--sidebar-border);
+  white-space:nowrap;
+}
+.jobs-table td{padding:12px 14px;border-bottom:1px solid var(--sidebar-border);font-size:13px;vertical-align:middle}
+.jobs-table tr:last-child td{border-bottom:none}
+.jobs-table tr:hover td{background:var(--surface)}
+.jobs-table .title-cell{font-weight:500;color:var(--text);max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jobs-table .co-cell{color:var(--text-2);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.badge.scale{background:rgba(79,142,247,0.1);color:var(--accent)}
+.badge.type{background:rgba(56,217,169,0.1);color:var(--accent-2)}
+.badge.exp{background:rgba(255,255,255,0.07);color:var(--text-2)}
+.badge.closed{background:rgba(247,111,111,0.1);color:var(--red)}
+.badge.dday{background:rgba(79,142,247,0.08);color:var(--accent)}
+.badge.dday.urgent{background:rgba(247,162,79,0.12);color:var(--orange)}
+.badge.dday.expired{background:rgba(247,111,111,0.1);color:var(--red)}
+.row-actions{display:flex;gap:6px;align-items:center}
+.row-btn{
+  padding:4px 10px;border-radius:6px;font-size:11px;font-weight:600;
+  border:1px solid var(--card-border);background:none;color:var(--text-2);
+  cursor:pointer;font-family:inherit;transition:all var(--transition);
+}
+.row-btn:hover{background:var(--surface-hover);color:var(--text)}
+.row-btn.del{border-color:rgba(247,111,111,0.3);color:var(--red)}
+.row-btn.del:hover{background:rgba(247,111,111,0.1)}
+.table-empty{padding:4rem;text-align:center;color:var(--text-3);font-size:13px}
+
+/* ── Pagination ── */
+.pagination{display:flex;justify-content:center;gap:4px;padding:14px}
+.pg-btn{
+  width:32px;height:32px;border-radius:7px;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text-2);font-size:12px;font-family:inherit;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  transition:all var(--transition);
+}
+.pg-btn:hover{background:var(--surface-hover);color:var(--text)}
+.pg-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.pg-btn:disabled{opacity:0.3;cursor:not-allowed}
+
+/* ── Keyword Panel ── */
+.kw-panel{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.kw-tags{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;margin-bottom:16px}
+.kw-tag{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 10px 5px 12px;
+  background:rgba(79,142,247,0.1);border:1px solid rgba(79,142,247,0.2);
+  border-radius:20px;font-size:12px;font-weight:500;color:var(--accent);
+}
+.kw-tag button{background:none;border:none;cursor:pointer;color:rgba(79,142,247,0.5);font-size:14px;line-height:1;padding:0;display:flex;align-items:center;transition:color var(--transition)}
+.kw-tag button:hover{color:var(--red)}
+.kw-add-row{display:flex;gap:8px}
+.kw-add-row input{
+  flex:1;padding:9px 14px;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text);border-radius:8px;
+  font-size:13px;font-family:inherit;outline:none;transition:border-color var(--transition);
+}
+.kw-add-row input:focus{border-color:var(--accent)}
+.kw-add-row input::placeholder{color:var(--text-3)}
+
+/* ── API Panel ── */
+.api-item{
+  background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;
+  display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:12px;
+}
+.api-dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex-shrink:0}
+.api-dot.live{background:var(--accent-2)}
+.api-name{font-size:13px;font-weight:500;color:var(--text)}
+.api-status{font-size:11px;color:var(--text-3)}
+.api-status.live{color:var(--accent-2)}
+.api-key-input{
+  width:100%;padding:8px 12px;border:1px solid var(--card-border);
+  background:var(--card);color:var(--text);border-radius:7px;
+  font-size:12px;font-family:monospace;outline:none;transition:border-color var(--transition);
+  margin-top:8px;grid-column:1/-1;
+}
+.api-key-input:focus{border-color:var(--accent)}
+.api-key-input::placeholder{color:var(--text-3)}
+
+/* ── Feedback ── */
+.fb-item{
+  background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:14px 16px;display:flex;gap:12px;
+  align-items:flex-start;margin-bottom:8px;
+}
+.fb-text{flex:1;font-size:13px;color:var(--text-2);line-height:1.6}
+.fb-meta{font-size:10px;color:var(--text-3);margin-top:4px}
+.fb-del{background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;display:flex;align-items:center;transition:color var(--transition);flex-shrink:0;margin-top:2px}
+.fb-del:hover{color:var(--red)}
+.fb-empty{text-align:center;padding:2rem;color:var(--text-3);font-size:13px}
+
+/* ── Notice Panel ── */
+.notice-item{
+  background:var(--surface);border:1px solid var(--card-border);
+  border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;
+  display:flex;gap:12px;align-items:flex-start;
+}
+.notice-type{font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;flex-shrink:0;margin-top:1px}
+.notice-type.urgent{background:rgba(247,111,111,0.15);color:var(--red)}
+.notice-type.info{background:rgba(79,142,247,0.1);color:var(--accent)}
+.notice-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px}
+.notice-body{font-size:12px;color:var(--text-2);line-height:1.5}
+.notice-meta{font-size:10px;color:var(--text-3);margin-top:4px}
+.notice-del{background:none;border:none;cursor:pointer;color:var(--text-3);padding:2px;display:flex;align-items:center;transition:color var(--transition);flex-shrink:0;margin-top:2px;margin-left:auto}
+.notice-del:hover{color:var(--red)}
+
+/* ── Form / Modal ── */
+.form-card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
+.form-card h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:16px;display:flex;align-items:center;gap:6px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.form-grid.full{grid-template-columns:1fr}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:0.4px;text-transform:uppercase}
+.fg input,.fg select,.fg textarea{
+  padding:9px 12px;border:1px solid var(--card-border);
+  background:var(--surface);color:var(--text);border-radius:7px;
+  font-size:13px;font-family:inherit;outline:none;transition:border-color var(--transition);
+}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent)}
+.fg input::placeholder,.fg textarea::placeholder{color:var(--text-3)}
+.fg select option{background:#0F2033}
+.fg textarea{resize:vertical;min-height:80px;line-height:1.6}
+.fg.span2{grid-column:span 2}
+.err-msg{font-size:12px;color:var(--red);margin-top:6px;display:none}
+.form-actions{display:flex;gap:8px;margin-top:16px;justify-content:flex-end}
+
+/* ── Notice split view ── */
+.notice-split-view{display:grid;grid-template-columns:340px 1fr;gap:0;border:1px solid var(--card-border);border-radius:var(--radius-lg);overflow:hidden;min-height:520px;background:var(--card)}
+.notice-list-col{border-right:1px solid var(--card-border);overflow-y:auto;max-height:600px}
+.notice-detail-col{overflow-y:auto;max-height:600px;padding:24px}
+.notice-detail-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;text-align:center}
+.notice-list-item{
+  padding:14px 16px;border-bottom:1px solid var(--card-border);
+  cursor:pointer;transition:background var(--transition);
+  display:flex;align-items:flex-start;gap:10px;
+}
+.notice-list-item:last-child{border-bottom:none}
+.notice-list-item:hover{background:var(--surface-hover)}
+.notice-list-item.active{background:rgba(79,142,247,0.08);border-left:3px solid var(--accent)}
+.notice-list-item.pinned{background:rgba(247,162,79,0.05)}
+.notice-cat-pill{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.notice-cat-pill.pin{background:rgba(79,142,247,0.12);color:var(--accent)}
+.notice-cat-pill.update{background:rgba(56,217,169,0.12);color:var(--accent-2)}
+.notice-cat-pill.check{background:rgba(255,255,255,0.08);color:var(--text-2)}
+.notice-cat-pill.urgent{background:rgba(247,111,111,0.15);color:var(--red)}
+.notice-list-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;line-height:1.35}
+.notice-list-meta{font-size:11px;color:var(--text-3)}
+.notice-pin-icon{font-size:10px;color:var(--orange);margin-left:4px}
+/* 상세 뷰 */
+.notice-detail-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--card-border)}
+.notice-detail-title{font-size:18px;font-weight:800;color:var(--text);line-height:1.3;flex:1}
+.notice-detail-meta{font-size:12px;color:var(--text-3);margin-bottom:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.notice-detail-body{font-size:14px;color:var(--text-2);line-height:1.8;white-space:pre-wrap;margin-bottom:20px}
+.notice-attach-section{border-top:1px solid var(--card-border);padding-top:14px}
+.notice-attach-title{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px}
+.notice-attach-item{display:flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--card-border);border-radius:8px;margin-bottom:6px;font-size:12px;color:var(--text-2)}
+.notice-attach-item svg{flex-shrink:0;color:var(--text-3)}
+.notice-detail-actions{display:flex;gap:8px;margin-top:16px}
+/* nav / prev / next */
+.notice-nav-row{display:flex;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--card-border)}
+.notice-nav-btn{background:none;border:1px solid var(--card-border);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--text-2);cursor:pointer;font-family:inherit;transition:all var(--transition)}
+.notice-nav-btn:hover{background:var(--surface-hover);color:var(--text)}
+.notice-nav-btn:disabled{opacity:0.3;cursor:not-allowed}
+/* 필터 탭 */
+.notice-filter-btn{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--card-border);background:var(--surface);color:var(--text-2);cursor:pointer;font-family:inherit;transition:all var(--transition)}
+.notice-filter-btn:hover{background:var(--surface-hover);color:var(--text)}
+.notice-filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* 카테고리 라디오 */
+.notice-cat-label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);cursor:pointer;padding:6px 12px;border:1px solid var(--card-border);border-radius:20px;transition:all var(--transition)}
+.notice-cat-label:has(input:checked){background:rgba(79,142,247,0.1);border-color:var(--accent);color:var(--accent)}
+.notice-cat-label input{accent-color:var(--accent)}
+
+/* ── Upload button ── */
+.upload-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 14px;border:1px dashed rgba(79,142,247,0.4);border-radius:8px;
+  font-size:12px;color:var(--accent);cursor:pointer;transition:all var(--transition);
+  font-family:inherit;background:none;font-weight:500;
+}
+.upload-btn:hover{background:rgba(79,142,247,0.08);border-color:var(--accent)}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,0.2)}
+
+/* ── Toast ── */
+.toast{
+  position:fixed;bottom:24px;right:24px;z-index:9999;
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:10px;padding:12px 18px;font-size:13px;color:var(--text);
+  box-shadow:var(--shadow);transform:translateY(20px);opacity:0;
+  transition:all 0.3s ease;pointer-events:none;max-width:300px;
+  display:flex;align-items:center;gap:8px;
+}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-left:3px solid var(--accent-2)}
+.toast.error{border-left:3px solid var(--red)}
+
+/* ── Salary radio ── */
+.salary-radios{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.salary-radio-label{
+  display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-2);
+  cursor:pointer;padding:5px 10px;border:1px solid var(--card-border);
+  border-radius:6px;transition:all var(--transition);
+}
+.salary-radio-label:has(input:checked){background:rgba(79,142,247,0.1);border-color:var(--accent);color:var(--accent)}
+.salary-radio-label input{accent-color:var(--accent)}
+.salary-input-row{display:flex;align-items:center;gap:8px}
+.salary-input-row input{flex:1}
+.salary-unit{font-size:12px;color:var(--text-3);white-space:nowrap}
+
+/* ── Bulk edit modal ── */
+.modal-overlay-local{
+  position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);
+  z-index:500;display:none;align-items:center;justify-content:center;
+}
+.modal-overlay-local.open{display:flex}
+.modal-local{
+  background:var(--card);border:1px solid var(--card-border);
+  border-radius:var(--radius-lg);padding:28px;width:440px;max-height:90vh;overflow-y:auto;
+}
+.modal-local h3{font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)}
+.modal-local p{font-size:12px;color:var(--text-3);margin-bottom:20px}
+.modal-head-row{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--text-3);font-size:20px;line-height:1;transition:color var(--transition);padding:2px}
+.modal-close:hover{color:var(--text)}
+
+/* ── CSV upload indicator ── */
+.upload-progress{
+  background:rgba(56,217,169,0.08);border:1px solid rgba(56,217,169,0.2);
+  border-radius:8px;padding:12px 14px;margin-bottom:12px;display:none;font-size:12px;color:var(--accent-2);
+}
+</style>
+</head>
+<body>
+
+<!-- ── Login Screen ── -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div style="width:44px;height:44px;background:linear-gradient(135deg,#4F8EF7,#38D9A9);border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:20px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
+    <h1>관리자 로그인</h1>
+    <p>Academy Job Scope 관리자 전용 페이지입니다.</p>
+    <div class="lf-group">
+      <label>이메일</label>
+      <input type="email" id="adminEmail" placeholder="admin@example.com" autocomplete="email">
+    </div>
+    <div class="lf-group">
+      <label>비밀번호</label>
+      <div class="pw-wrap">
+        <input type="password" id="adminPw" placeholder="비밀번호" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <button class="pw-eye" id="pwEye" onclick="togglePwEye()" tabindex="-1">
+          <svg id="eyeOff" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          <svg id="eyeOn" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="lf-err" id="loginErr"></div>
+    <button class="lf-btn" id="loginBtn" onclick="doLogin()">로그인</button>
+    <div style="margin-top:16px;text-align:center"><a href="index.html" style="font-size:12px;color:var(--text-3);text-decoration:none">← 채용 탐색기로 돌아가기</a></div>
+  </div>
+</div>
+
+<!-- ── Dashboard ── -->
+<div id="dashboard" style="display:none;width:100%;height:100%;display:none;flex-direction:row">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-mark"><img src="logo.png" alt="logo"></div>
+      <div>
+        <div class="sb-logo-text">Academy Job Scope</div>
+        <div class="sb-logo-sub">관리자 대시보드</div>
+      </div>
+    </div>
+    <div class="sb-role-badge" id="sbRoleBadge">
+      <span class="dot"></span>
+      <span id="sbRoleText">ADMIN</span>
+    </div>
+    <div class="sb-nav">
+      <div class="sb-section">메인</div>
+      <button class="sb-item active" onclick="navTo('dashboard')" data-page="dashboard">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        대시보드
+      </button>
+      <button class="sb-item" onclick="navTo('jobs')" data-page="jobs">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        공고 관리
+        <span class="sb-badge" id="sbJobCount">0</span>
+      </button>
+      <button class="sb-item" onclick="navTo('keywords')" data-page="keywords">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        키워드 관리
+      </button>
+      <button class="sb-item" onclick="navTo('notices')" data-page="notices">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        공지 관리
+      </button>
+      <button class="sb-item" onclick="navTo('feedback')" data-page="feedback">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        피드백
+      </button>
+      <div class="sb-section" id="sbSuperSection" style="display:none">슈퍼모드</div>
+      <button class="sb-item" onclick="navTo('api')" data-page="api" id="sbApiItem" style="display:none">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        API 키 관리
+      </button>
+    </div>
+    <div class="sb-footer">
+      <button class="sb-item" onclick="goMain()" style="margin-bottom:4px">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        채용 탐색기
+      </button>
+      <button class="sb-item danger" onclick="doLogout()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        로그아웃
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <div>
+          <div class="topbar-title" id="topbarTitle">대시보드</div>
+          <div class="topbar-sub" id="topbarSub">마지막 동기화 — 방금 전</div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <span class="topbar-email" id="topbarEmail"></span>
+        <button class="topbar-btn primary" onclick="navTo('jobs')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          공고 수동 추가
+        </button>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="content">
+
+      <!-- ── Dashboard Page ── -->
+      <div class="page active" id="page-dashboard">
+        <div class="stat-grid" id="statGrid">
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              전체 공고
+            </div>
+            <div class="stat-val blue" id="statTotal">—</div>
+            <div class="stat-sub" id="statTodaySub">오늘 +0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              활성 공고
+            </div>
+            <div class="stat-val green" id="statActive">—</div>
+            <div class="stat-sub" id="statActiveSub">마감 D-7 이내 <strong id="statUrgent">0</strong></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              등록 키워드
+            </div>
+            <div class="stat-val" id="statKw">—</div>
+            <div class="stat-sub">매칭 기준 키워드</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              피드백
+            </div>
+            <div class="stat-val orange" id="statFb">—</div>
+            <div class="stat-sub">사용자 제출 피드백</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <!-- 일별 차트 (14일) -->
+          <div class="chart-card">
+            <div class="chart-head">
+              <div class="chart-title">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                일별 신규 공고 (최근 14일)
+              </div>
+            </div>
+            <div class="chart-wrap" id="barChart"></div>
+          </div>
+          <!-- 키워드별 공고수 -->
+          <div class="chart-card">
+            <div class="chart-title" style="margin-bottom:16px">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+              키워드별 공고 수
+            </div>
+            <div id="kwBars"></div>
+          </div>
+        </div>
+
+        <!-- 크롤링 소스 (더미) -->
+        <div class="crawl-card">
+          <div class="crawl-head">
+            <div class="section-title">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              크롤링 소스 상태
+              <span>최근 24시간 (참고용)</span>
+            </div>
+          </div>
+          <div class="crawl-row">
+            <span class="dot green"></span>
+            <span class="crawl-site">잡코리아</span>
+            <span class="crawl-count" id="srcJk">—</span>
+            <span class="crawl-time">2분 전</span>
+            <span class="crawl-err ok">에러 0</span>
+            <button class="crawl-log-btn">로그</button>
+          </div>
+          <div class="crawl-row">
+            <span class="dot green"></span>
+            <span class="crawl-site">사람인</span>
+            <span class="crawl-count" id="srcSaramin">—</span>
+            <span class="crawl-time">4분 전</span>
+            <span class="crawl-err ok">에러 0</span>
+            <button class="crawl-log-btn">로그</button>
+          </div>
+          <div class="crawl-row">
+            <span class="dot green"></span>
+            <span class="crawl-site">원티드</span>
+            <span class="crawl-count" id="srcWanted">—</span>
+            <span class="crawl-time">8분 전</span>
+            <span class="crawl-err ok">에러 0</span>
+            <button class="crawl-log-btn">로그</button>
+          </div>
+          <div class="crawl-row">
+            <span class="dot gray"></span>
+            <span class="crawl-site">워크넷</span>
+            <span class="crawl-count">미연동</span>
+            <span class="crawl-time">—</span>
+            <span class="crawl-err bad">API 미설정</span>
+            <button class="crawl-log-btn">로그</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Jobs Page ── -->
+      <div class="page" id="page-jobs">
+        <!-- Add form (collapsible) -->
+        <div class="form-card" id="jobFormWrap" style="display:none">
+          <h3>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span id="jobFormTitle">새 공고 등록</span>
+            <button onclick="hideJobForm()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-3);font-size:18px;line-height:1" title="닫기">×</button>
+          </h3>
+          <div class="form-grid">
+            <div class="fg"><label>공고 제목 *</label><input type="text" id="jTitle" placeholder="예: 데이터 엔지니어 채용"></div>
+            <div class="fg"><label>회사명 *</label><input type="text" id="jCompany" placeholder="기업명 또는 기관명"></div>
+            <div class="fg"><label>직무</label><input type="text" id="jRole" placeholder="예: 데이터 분석, AI 엔지니어"></div>
+            <div class="fg"><label>업종</label><input type="text" id="jIndustry" placeholder="예: 헬스케어, 핀테크"></div>
+            <div class="fg"><label>근무 지역</label><input type="text" id="jLocation" placeholder="예: 서울 강남구"></div>
+            <div class="fg">
+              <label>고용형태</label>
+              <select id="jJobType"><option value="정규직">정규직</option><option value="계약직">계약직</option><option value="인턴">인턴</option></select>
+            </div>
+            <div class="fg">
+              <label>경력</label>
+              <select id="jExperience"><option value="">미표시</option><option value="신입">신입</option><option value="신입·경력">신입·경력</option><option value="경력">경력</option></select>
+            </div>
+            <div class="fg">
+              <label>학력</label>
+              <select id="jEducation"><option value="">미표시</option><option value="학력무관">학력무관</option><option value="대졸 이상">대졸 이상</option><option value="석사 이상">석사 이상</option><option value="박사 이상">박사 이상</option></select>
+            </div>
+            <div class="fg">
+              <label>기업 규모</label>
+              <select id="jScale"><option value="large">대기업</option><option value="mid">중소기업</option><option value="startup">스타트업</option><option value="public">공공기관</option></select>
+            </div>
+            <div class="fg">
+              <label>마감일 유형</label>
+              <select id="jDeadlineType" onchange="onDeadlineTypeChange()"><option value="date">날짜 지정</option><option value="always">상시채용</option><option value="untilFilled">채용시 마감</option></select>
+            </div>
+            <div class="fg" id="jDeadlineRow"><label>마감일</label><input type="date" id="jDeadline"></div>
+            <div class="fg">
+              <label>출처</label>
+              <select id="jSrc"><option value="custom">직접등록</option><option value="saramin">사람인</option><option value="jobkorea">잡코리아</option><option value="wanted">원티드</option><option value="work24">고용24</option><option value="worknet">워크넷</option><option value="etc">기타</option></select>
+            </div>
+            <div class="fg span2"><label>지원 URL *</label><input type="text" id="jUrl" placeholder="https://..."></div>
+            <div class="fg span2">
+              <label>연봉</label>
+              <div class="salary-radios">
+                <label class="salary-radio-label"><input type="radio" name="salaryType" value="range" checked onchange="onSalaryTypeChange()"> 범위</label>
+                <label class="salary-radio-label"><input type="radio" name="salaryType" value="above" onchange="onSalaryTypeChange()"> 이상</label>
+                <label class="salary-radio-label"><input type="radio" name="salaryType" value="below" onchange="onSalaryTypeChange()"> 이하</label>
+                <label class="salary-radio-label"><input type="radio" name="salaryType" value="fixed" onchange="onSalaryTypeChange()"> 확정</label>
+                <label class="salary-radio-label"><input type="radio" name="salaryType" value="negotiable" onchange="onSalaryTypeChange()"> 협의</label>
+              </div>
+              <div class="salary-input-row" id="salaryInputRow">
+                <input type="text" id="jSalaryFrom" placeholder="최소" oninput="fmtSalary(this)" inputmode="numeric">
+                <span class="salary-unit">만원</span>
+                <span id="salaryTilde" class="salary-unit">~</span>
+                <input type="text" id="jSalaryTo" placeholder="최대" oninput="fmtSalary(this)" inputmode="numeric" id="jSalaryToWrap">
+                <span class="salary-unit" id="salaryUnit2">만원</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-3);margin-top:4px" id="salaryPreview"></div>
+            </div>
+            <div class="fg span2"><label>키워드 태그</label><input type="text" id="jDesc" placeholder="예: Python 데이터 분석 헬스케어"></div>
+            <div class="fg span2"><label>필요기술 · 우대사항</label><textarea id="jRequirements" placeholder="필요 기술 및 우대사항을 입력해주세요…"></textarea></div>
+          </div>
+          <div class="err-msg" id="jobAddErr"></div>
+          <div class="form-actions">
+            <button class="action-btn" onclick="hideJobForm()">취소</button>
+            <button class="action-btn primary" id="jobSubmitBtn" onclick="submitAdminJob()">등록</button>
+          </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="jm-toolbar">
+          <div class="jm-search">
+            <svg class="jm-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" id="jmSearch" placeholder="공고명, 회사명, 직무 검색…" oninput="jmPage=1;renderJobsTable()" autocomplete="off">
+          </div>
+          <div class="jm-tab-group">
+            <button class="jm-tab active" onclick="setJmTab('all',this)">전체</button>
+            <button class="jm-tab" onclick="setJmTab('active',this)">진행중</button>
+            <button class="jm-tab" onclick="setJmTab('closed',this)">마감</button>
+          </div>
+          <label class="upload-btn" title="CSV/Excel 일괄 등록">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            파일 일괄 등록
+            <input type="file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleAdminCsvUpload(this)">
+          </label>
+          <button class="action-btn primary" onclick="showJobForm(null)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            새 공고
+          </button>
+          <button class="action-btn danger" id="bulkDelBtn" onclick="bulkDelete()" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            삭제 (<span id="bulkDelCount">0</span>)
+          </button>
+          <button class="action-btn" id="bulkEditBtn" onclick="openBulkEdit()" disabled>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            일괄 수정 (<span id="bulkEditCount">0</span>)
+          </button>
+        </div>
+
+        <div class="upload-progress" id="uploadProgress"></div>
+
+        <div class="jobs-table-wrap">
+          <table class="jobs-table">
+            <thead>
+              <tr>
+                <th style="width:36px"><input type="checkbox" id="checkAll" onchange="toggleCheckAll(this.checked)" style="accent-color:var(--accent)"></th>
+                <th>공고 제목</th>
+                <th>회사명</th>
+                <th>직무</th>
+                <th>고용형태</th>
+                <th>마감일</th>
+                <th>출처</th>
+                <th>작업</th>
+              </tr>
+            </thead>
+            <tbody id="jobsTableBody">
+              <tr><td colspan="8" class="table-empty">불러오는 중…</td></tr>
+            </tbody>
+          </table>
+          <div class="pagination" id="jobsPagination"></div>
+        </div>
+      </div>
+
+      <!-- ── Keywords Page ── -->
+      <div class="page" id="page-keywords">
+        <div class="kw-panel">
+          <div class="section-head">
+            <div class="section-title">등록된 키워드</div>
+          </div>
+          <div class="kw-tags" id="kwTags"><span style="color:var(--text-3);font-size:13px">불러오는 중…</span></div>
+          <div class="kw-add-row">
+            <input type="text" id="newKwInput" placeholder="새 키워드 입력" onkeydown="if(event.key==='Enter')addKw()">
+            <button class="action-btn primary" onclick="addKw()">추가</button>
+          </div>
+          <div class="err-msg" id="kwErr" style="margin-top:8px">키워드를 입력하세요.</div>
+        </div>
+        <div class="form-actions" style="justify-content:flex-start">
+          <button class="action-btn primary" onclick="saveKws()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            저장 및 적용
+          </button>
+        </div>
+      </div>
+
+      <!-- ── Notices Page ── -->
+      <div class="page" id="page-notices">
+        <!-- 상단 액션바 -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div style="display:flex;gap:6px" id="noticeFilterBtns">
+            <button class="notice-filter-btn active" onclick="setNoticeFilter('all',this)">전체</button>
+            <button class="notice-filter-btn" onclick="setNoticeFilter('공지',this)">공지</button>
+            <button class="notice-filter-btn" onclick="setNoticeFilter('업데이트',this)">업데이트</button>
+            <button class="notice-filter-btn" onclick="setNoticeFilter('점검',this)">점검</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span id="noticeTotalCount" style="font-size:12px;color:var(--text-3)">총 0건</span>
+            <button class="action-btn primary" onclick="showNoticeForm(null)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              새 공지 작성
+            </button>
+          </div>
+        </div>
+
+        <!-- 리스트 + 상세 분할 뷰 -->
+        <div class="notice-split-view">
+          <!-- 좌측 리스트 -->
+          <div class="notice-list-col" id="noticeListCol">
+            <div class="table-empty">불러오는 중…</div>
+          </div>
+          <!-- 우측 상세 -->
+          <div class="notice-detail-col" id="noticeDetailCol">
+            <div class="notice-detail-empty">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-3);margin-bottom:12px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <div style="font-size:13px;color:var(--text-3)">공지를 선택하면 내용이 표시됩니다</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 공지 작성/수정 폼 (모달) -->
+        <div class="modal-overlay-local" id="noticeFormModal">
+          <div class="modal-local" style="width:560px">
+            <div class="modal-head-row">
+              <div>
+                <h3 id="noticeFormTitle">새 공지 작성</h3>
+                <p style="margin-top:4px">공지사항을 작성하고 게시합니다.</p>
+              </div>
+              <button class="modal-close" onclick="hideNoticeForm()">×</button>
+            </div>
+            <!-- 카테고리 -->
+            <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+              <label class="notice-cat-label" id="catLabelPin">
+                <input type="radio" name="nType" value="공지" checked onchange="updateNoticeCatStyle()"> 📌 공지
+              </label>
+              <label class="notice-cat-label" id="catLabelUpdate">
+                <input type="radio" name="nType" value="업데이트" onchange="updateNoticeCatStyle()"> 🔄 업데이트
+              </label>
+              <label class="notice-cat-label" id="catLabelCheck">
+                <input type="radio" name="nType" value="점검" onchange="updateNoticeCatStyle()"> 🔧 점검
+              </label>
+              <label class="notice-cat-label" id="catLabelUrg" style="border-color:rgba(247,111,111,0.3)">
+                <input type="radio" name="nType" value="긴급" onchange="updateNoticeCatStyle()"> 🚨 긴급
+              </label>
+            </div>
+            <!-- 핀 여부 -->
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+              <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);cursor:pointer">
+                <input type="checkbox" id="nPinned" style="accent-color:var(--accent);width:15px;height:15px"> 상단 고정 (핀)
+              </label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div class="fg"><label>공지 제목 *</label><input type="text" id="nTitle" placeholder="공지 제목 (최대 100자)" maxlength="100"></div>
+              <div class="fg" style="position:relative">
+                <label>내용 * <span style="font-weight:400;color:var(--text-3)" id="nCharCount">0 / 1000</span></label>
+                <textarea id="nContent" placeholder="공지 내용을 입력하세요. (최대 1000자)" maxlength="1000" oninput="document.getElementById('nCharCount').textContent=this.value.length+' / 1000'" style="height:160px;resize:vertical"></textarea>
+              </div>
+              <!-- 파일 첨부 -->
+              <div>
+                <label class="upload-btn" style="display:inline-flex">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  이미지 / 파일 첨부
+                  <input type="file" id="nFileInput" multiple accept="image/*,.pdf,.doc,.docx,.xlsx,.pptx" style="display:none" onchange="onNoticeFileSelect(this)">
+                </label>
+                <div id="nFileList" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px"></div>
+              </div>
+              <div class="fg"><label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;text-transform:none;letter-spacing:0"><input type="checkbox" id="nPublish" style="accent-color:var(--accent);width:15px;height:15px"> 즉시 게시</label></div>
+            </div>
+            <div class="err-msg" id="noticeAddErr" style="margin-top:10px"></div>
+            <div class="form-actions" style="margin-top:16px">
+              <button class="action-btn" onclick="hideNoticeForm()">취소</button>
+              <button class="action-btn primary" id="noticeSubmitBtn" onclick="submitAdminNotice()">등록</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Feedback Page ── -->
+      <div class="page" id="page-feedback">
+        <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+          <button class="action-btn" onclick="loadFeedbacks()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
+            새로고침
+          </button>
+        </div>
+        <div id="fbList"><div class="table-empty">불러오는 중…</div></div>
+      </div>
+
+      <!-- ── API Page ── -->
+      <div class="page" id="page-api">
+        <div class="form-card">
+          <h3>API 키 관리</h3>
+          <div id="apiItems"></div>
+          <div style="border-top:1px solid var(--card-border);padding-top:14px;margin-top:4px">
+            <div style="font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:10px">새 API 등록</div>
+            <div class="form-grid">
+              <div class="fg"><label>사이트명</label><input type="text" id="newApiName" placeholder="예: 사람인 API"></div>
+              <div class="fg"><label>API Key</label><input type="text" id="newApiKey" placeholder="발급받은 키를 입력하세요"></div>
+            </div>
+            <div class="err-msg" id="apiAddErr" style="margin-top:6px">사이트명과 API Key를 모두 입력하세요.</div>
+            <div class="form-actions">
+              <button class="action-btn" onclick="addApiItem()">추가</button>
+              <button class="action-btn primary" onclick="saveApiKeys()">저장 및 적용</button>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:8px">
+          <button class="action-btn danger" onclick="confirmResetAll()" style="font-size:12px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            전체 데이터 초기화
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /dashboard -->
+
+<!-- Bulk Edit Modal -->
+<div class="modal-overlay-local" id="bulkEditModal">
+  <div class="modal-local">
+    <div class="modal-head-row">
+      <div>
+        <h3>✏️ 일괄 수정</h3>
+        <p>수정할 항목만 선택하세요. 빈 항목은 변경되지 않습니다.</p>
+      </div>
+      <button class="modal-close" onclick="closeBulkEdit()">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="fg"><label>마감일 유형</label><select id="beDeadlineType" onchange="onBeDeadlineTypeChange()"><option value="">변경 안함</option><option value="date">날짜 지정</option><option value="always">상시채용</option><option value="untilFilled">채용시 마감</option></select></div>
+      <div class="fg" id="beDeadlineRow"><label>마감일</label><input type="date" id="beDeadline"></div>
+      <div class="fg"><label>고용형태</label><select id="beJobType"><option value="">변경 안함</option><option value="정규직">정규직</option><option value="계약직">계약직</option><option value="인턴">인턴</option></select></div>
+      <div class="fg"><label>기업 규모</label><select id="beScale"><option value="">변경 안함</option><option value="large">대기업</option><option value="mid">중소기업</option><option value="startup">스타트업</option><option value="public">공공기관</option></select></div>
+      <div class="fg"><label>경력</label><select id="beExperience"><option value="">변경 안함</option><option value="신입">신입</option><option value="경력">경력</option><option value="신입·경력">신입·경력</option><option value="무관">무관</option></select></div>
+      <div class="fg"><label>연봉</label><input type="text" id="beSalary" placeholder="예: 면접 후 결정, 4,000만원 이상"></div>
+    </div>
+    <div class="err-msg" id="beErr" style="margin-top:10px">하나 이상의 항목을 선택하세요.</div>
+    <div class="form-actions" style="margin-top:16px">
+      <button class="action-btn" onclick="closeBulkEdit()">취소</button>
+      <button class="action-btn primary" onclick="submitBulkEdit()">일괄 수정</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ── Wait for Firebase ──
+function waitForFb(cb){ if(window._fb) cb(); else window.addEventListener('firebase-ready',cb,{once:true}); }
+
+// ── State ──
+let JOBS = [];
+let KWS = [];
+let feedbacks = [];
+let notices = [];
+let currentRole = null;
+let currentEmail = '';
+let jmTabFilter = 'all';
+let jmPage = 1;
+const PAGE_SIZE = 20;
+let selectedIds = new Set();
+let editingJobIdx = null;
+let editingNoticeId = null;
+let dynamicApis = JSON.parse(localStorage.getItem('ajs_dyn_apis') || '[]');
+if(!dynamicApis.length) dynamicApis = [
+  {key:'saramin',name:'사람인 API',value:''},
+  {key:'worknet',name:'워크넷 API',value:''},
+];
+
+// ── Helpers ──
+function dday(dl){if(!dl)return 999;const d=new Date(dl);d.setHours(23,59,59,999);return Math.ceil((d-new Date())/86400000);}
+function fmtDate(iso){if(!iso)return '—';const d=new Date(iso);return`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`}
+function srcLabel(s){return{custom:'직접등록',saramin:'사람인',jobkorea:'잡코리아',wanted:'원티드',work24:'고용24',worknet:'워크넷',etc:'기타'}[s]||s}
+function scaleLabel(s){return{large:'대기업',mid:'중소기업',startup:'스타트업',public:'공기업'}[s]||s||'—'}
+window.fmtSalary=function(el){const r=el.value.replace(/[^0-9]/g,'');el.value=r?Number(r).toLocaleString('ko-KR'):'';}
+
+function toast(msg, type='success'){
+  const el=document.getElementById('toast');
+  el.textContent=''; el.className='toast '+type;
+  const icon=type==='success'?'✓':'✕';
+  el.innerHTML=`<span>${icon}</span> ${msg}`;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── Login ──
+window.togglePwEye=function(){
+  const inp=document.getElementById('adminPw');
+  const off=document.getElementById('eyeOff');
+  const on=document.getElementById('eyeOn');
+  if(inp.type==='password'){inp.type='text';off.style.display='none';on.style.display=''}
+  else{inp.type='password';on.style.display='none';off.style.display=''}
+}
+window.doLogin=async function(){
+  const email=document.getElementById('adminEmail').value.trim();
+  const pw=document.getElementById('adminPw').value;
+  const err=document.getElementById('loginErr');
+  const btn=document.getElementById('loginBtn');
+  if(!email||!pw){err.textContent='이메일과 비밀번호를 입력하세요.';err.style.display='block';return;}
+  if(!window._fb?.signIn){err.textContent='Firebase 초기화 중입니다. 잠시 후 다시 시도해주세요.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='로그인 중…';err.style.display='none';
+  try{
+    const role=await window._fb.signIn(email,pw);
+    currentRole=role;currentEmail=email;
+    sessionStorage.setItem('ajs_session','1');
+    initDashboard();
+  }catch(e){
+    let msg='이메일 또는 비밀번호가 올바르지 않습니다.';
+    if(e.message==='접근 권한이 없는 계정입니다.') msg='관리자 권한이 없는 계정입니다.';
+    err.textContent=msg;err.style.display='block';
+    btn.disabled=false;btn.textContent='로그인';
+  }
+}
+
+// ── Auto-restore session ──
+waitForFb(()=>{
+  window.addEventListener('auth-state-changed',(e)=>{
+    const {user,role}=e.detail;
+    const alive=sessionStorage.getItem('ajs_session');
+    if(alive&&role&&user){
+      currentRole=role;currentEmail=user.email||'';
+      initDashboard();
+    }
+  });
+});
+
+function initDashboard(){
+  document.getElementById('loginScreen').style.display='none';
+  const db=document.getElementById('dashboard');
+  db.style.display='flex';
+  // role UI
+  document.getElementById('sbRoleText').textContent=currentRole==='super'?'SUPER':'ADMIN';
+  document.getElementById('topbarEmail').textContent=currentEmail;
+  if(currentRole==='super'){
+    document.getElementById('sbSuperSection').style.display='';
+    document.getElementById('sbApiItem').style.display='';
+  }
+  // Subscribe jobs
+  window._fb.subscribe((jobs)=>{
+    JOBS=jobs;
+    document.getElementById('sbJobCount').textContent=JOBS.length;
+    if(document.getElementById('page-jobs').classList.contains('active')) renderJobsTable();
+    if(document.getElementById('page-dashboard').classList.contains('active')) renderDashboard();
+  });
+  // Load keywords
+  loadKws();
+  // Init page
+  navTo('dashboard');
+}
+
+// ── Navigation ──
+window.navTo=function(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item[data-page]').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  const btn=document.querySelector(`.sb-item[data-page="${page}"]`);
+  if(btn) btn.classList.add('active');
+  const titles={dashboard:'대시보드',jobs:'공고 관리',keywords:'키워드 관리',notices:'공지 관리',feedback:'피드백',api:'API 키 관리'};
+  document.getElementById('topbarTitle').textContent=titles[page]||page;
+  if(page==='dashboard') renderDashboard();
+  if(page==='jobs'){renderJobsTable();selectedIds.clear();updateBulkBar();}
+  if(page==='keywords') renderKws();
+  if(page==='notices') loadNotices();
+  if(page==='feedback') loadFeedbacks();
+  if(page==='api') renderApiItems();
+}
+window.goMain=function(){window.open('index.html','_blank')}
+window.doLogout=function(){
+  if(!confirm('로그아웃 하시겠습니까?')) return;
+  window._fb?.signOut?.();
+  sessionStorage.removeItem('ajs_session');
+  location.reload();
+}
+
+// ── Dashboard Render ──
+function renderDashboard(){
+  const now=new Date();
+  const today=now.toISOString().slice(0,10);
+  const total=JOBS.length;
+  const active=JOBS.filter(j=>{
+    const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
+    return !j.closed&&(isSpecial||dday(j.deadline)>=0);
+  }).length;
+  const urgent=JOBS.filter(j=>{
+    const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
+    if(isSpecial||j.closed) return false;
+    const d=dday(j.deadline);return d>=0&&d<=7;
+  }).length;
+  const todayJobs=JOBS.filter(j=>(j.createdAt||'').startsWith(today)).length;
+  document.getElementById('statTotal').textContent=total;
+  document.getElementById('statActive').textContent=active;
+  document.getElementById('statKw').textContent=KWS.length;
+  document.getElementById('statTodaySub').textContent=`오늘 +${todayJobs}`;
+  document.getElementById('statUrgent').textContent=urgent;
+
+  // Source breakdown
+  const bySrc={saramin:0,jobkorea:0,wanted:0,worknet:0};
+  JOBS.forEach(j=>{if(bySrc[j.source]!==undefined)bySrc[j.source]++;});
+  const showSrc=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val+'건 수집';};
+  showSrc('srcJk',bySrc.jobkorea);showSrc('srcSaramin',bySrc.saramin);showSrc('srcWanted',bySrc.wanted);
+
+  // Bar chart - 14 days
+  const counts={};
+  for(let i=13;i>=0;i--){
+    const d=new Date(now);d.setDate(d.getDate()-i);
+    counts[d.toISOString().slice(0,10)]=0;
+  }
+  JOBS.forEach(j=>{
+    const ca=(j.createdAt||'').slice(0,10);
+    if(counts[ca]!==undefined) counts[ca]++;
+  });
+  const days=Object.entries(counts);
+  const maxVal=Math.max(...days.map(d=>d[1]),1);
+  const barHtml=days.map(([date,cnt])=>{
+    const isToday=date===today;
+    const h=Math.max((cnt/maxVal)*140,2);
+    const label=date.slice(5).replace('-','.');
+    return`<div class="bar-item" title="${date}: ${cnt}건">
+      <div class="bar-fill ${isToday?'today':''}" style="height:${h}px"></div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('barChart').innerHTML=barHtml;
+
+  // Keyword bars
+  const kwCounts={};
+  KWS.forEach(k=>{kwCounts[k]=0;});
+  JOBS.forEach(j=>{
+    const txt=`${j.title||''} ${j.role||''} ${j.industry||''} ${j.keywords||''} ${j.description||''}`.toLowerCase();
+    KWS.forEach(k=>{if(txt.includes(k.toLowerCase()))kwCounts[k]++;});
+  });
+  const sorted=Object.entries(kwCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxKw=Math.max(...sorted.map(k=>k[1]),1);
+  document.getElementById('kwBars').innerHTML=sorted.map(([k,c])=>`
+    <div class="kw-bar-item">
+      <div class="kw-bar-name">${k}</div>
+      <div class="kw-bar-track"><div class="kw-bar-fill" style="width:${(c/maxKw)*100}%"></div></div>
+      <div class="kw-bar-num">${c}</div>
+    </div>`).join('')||'<div style="color:var(--text-3);font-size:12px">키워드 없음</div>';
+}
+
+// ── Jobs Table ──
+function renderJobsTable(){
+  const q=(document.getElementById('jmSearch')?.value||'').trim().toLowerCase();
+  const filtered=JOBS.filter(j=>{
+    const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
+    const expired=!isSpecial&&dday(j.deadline)<0;
+    const isClosed=j.closed||expired;
+    if(jmTabFilter==='active'&&isClosed) return false;
+    if(jmTabFilter==='closed'&&!isClosed) return false;
+    if(q){const txt=`${j.title||''} ${j.company||''} ${j.role||''}`.toLowerCase();if(!txt.includes(q))return false;}
+    return true;
+  });
+  const totalPages=Math.ceil(filtered.length/PAGE_SIZE)||1;
+  if(jmPage>totalPages) jmPage=1;
+  const paged=filtered.slice((jmPage-1)*PAGE_SIZE,jmPage*PAGE_SIZE);
+  const tbody=document.getElementById('jobsTableBody');
+  if(!paged.length){tbody.innerHTML=`<tr><td colspan="8" class="table-empty">공고가 없습니다</td></tr>`;renderPag(0,0);return;}
+  tbody.innerHTML=paged.map((j,ri)=>{
+    const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';
+    const d=isSpecial?999:dday(j.deadline);
+    const expired=!isSpecial&&d<0;
+    const urg=!isSpecial&&!expired&&d<=7;
+    let ddBadge=isSpecial?`<span class="badge dday">${j.deadlineType==='always'?'상시채용':'채용시마감'}</span>`:
+      expired?`<span class="badge dday expired">만료</span>`:
+      urg?`<span class="badge dday urgent">D-${d}</span>`:
+      `<span class="badge dday">D-${d}</span>`;
+    const realIdx=JOBS.findIndex(x=>x.id===j.id);
+    return`<tr>
+      <td><input type="checkbox" style="accent-color:var(--accent)" ${selectedIds.has(String(j.id))?'checked':''} onchange="onRowCheck(this,'${j.id}')"></td>
+      <td class="title-cell" title="${j.title||''}">${j.title||'—'}</td>
+      <td class="co-cell" title="${j.company||''}">${j.company||'—'}</td>
+      <td style="font-size:12px;color:var(--text-2)">${j.role||'—'}</td>
+      <td><span class="badge type">${j.jobType||'정규직'}</span></td>
+      <td>${ddBadge}</td>
+      <td style="font-size:11px;color:var(--text-3)">${srcLabel(j.source||j.src||'custom')}</td>
+      <td><div class="row-actions">
+        <button class="row-btn" onclick="editJob(${realIdx})">수정</button>
+        <button class="row-btn del" onclick="deleteJob('${j.id}')">삭제</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  renderPag(jmPage,totalPages);
+}
+function renderPag(cur,total){
+  const el=document.getElementById('jobsPagination');
+  if(total<=1){el.innerHTML='';return;}
+  let html='';
+  html+=`<button class="pg-btn" onclick="jmPage--;renderJobsTable()" ${cur<=1?'disabled':''}>‹</button>`;
+  for(let i=1;i<=total;i++){
+    if(total>7&&(i>2&&i<cur-1||i>cur+1&&i<total-1)){if(i===3||i===total-2)html+='<span style="color:var(--text-3);display:flex;align-items:center;padding:0 4px">…</span>';continue;}
+    html+=`<button class="pg-btn ${i===cur?'active':''}" onclick="jmPage=${i};renderJobsTable()">${i}</button>`;
+  }
+  html+=`<button class="pg-btn" onclick="jmPage++;renderJobsTable()" ${cur>=total?'disabled':''}>›</button>`;
+  el.innerHTML=html;
+}
+window.jmPage=1;
+window.setJmTab=function(tab,btn){
+  jmTabFilter=tab;jmPage=1;
+  document.querySelectorAll('.jm-tab').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderJobsTable();
+}
+window.onRowCheck=function(cb,id){
+  const sid=String(id);
+  if(cb.checked) selectedIds.add(sid); else selectedIds.delete(sid);
+  updateBulkBar();
+}
+window.toggleCheckAll=function(checked){
+  const q=(document.getElementById('jmSearch')?.value||'').trim().toLowerCase();
+  const filtered=JOBS.filter(j=>{
+    if(jmTabFilter==='active'){const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';const expired=!isSpecial&&dday(j.deadline)<0;if(j.closed||expired)return false;}
+    if(jmTabFilter==='closed'){const isSpecial=j.deadlineType==='always'||j.deadlineType==='untilFilled';const expired=!isSpecial&&dday(j.deadline)<0;if(!j.closed&&!expired)return false;}
+    if(q){const txt=`${j.title||''} ${j.company||''} ${j.role||''}`.toLowerCase();if(!txt.includes(q))return false;}
+    return true;
+  });
+  if(checked) filtered.forEach(j=>selectedIds.add(String(j.id)));
+  else selectedIds.clear();
+  document.querySelectorAll('#jobsTableBody input[type=checkbox]').forEach(cb2=>{cb2.checked=checked});
+  updateBulkBar();
+}
+function updateBulkBar(){
+  const n=selectedIds.size;
+  document.getElementById('bulkDelCount').textContent=n;
+  document.getElementById('bulkEditCount').textContent=n;
+  document.getElementById('bulkDelBtn').disabled=n===0;
+  document.getElementById('bulkEditBtn').disabled=n===0;
+}
+
+// ── Job Form ──
+window.showJobForm=function(idx){
+  editingJobIdx=idx;
+  const wrap=document.getElementById('jobFormWrap');
+  wrap.style.display='';
+  const title=document.getElementById('jobFormTitle');
+  if(idx!==null&&idx!==undefined){
+    title.textContent='공고 수정';
+    document.getElementById('jobSubmitBtn').textContent='수정';
+    const j=JOBS[idx];
+    document.getElementById('jTitle').value=j.title||'';
+    document.getElementById('jCompany').value=j.company||'';
+    document.getElementById('jRole').value=j.role||'';
+    document.getElementById('jIndustry').value=j.industry||'';
+    document.getElementById('jLocation').value=j.location||'';
+    document.getElementById('jJobType').value=j.jobType||'정규직';
+    document.getElementById('jExperience').value=j.experience||'';
+    document.getElementById('jEducation').value=j.education||'';
+    document.getElementById('jScale').value=j.scale||'mid';
+    document.getElementById('jDeadlineType').value=j.deadlineType||'date';
+    document.getElementById('jDeadline').value=j.deadline||'';
+    document.getElementById('jSrc').value=j.source||j.src||'custom';
+    document.getElementById('jUrl').value=j.url||'';
+    document.getElementById('jDesc').value=j.description||j.keywords||'';
+    document.getElementById('jRequirements').value=j.requirements||'';
+  } else {
+    title.textContent='새 공고 등록';
+    document.getElementById('jobSubmitBtn').textContent='등록';
+    ['jTitle','jCompany','jRole','jIndustry','jLocation','jUrl','jDesc','jRequirements'].forEach(id=>{document.getElementById(id).value='';});
+    document.getElementById('jJobType').value='정규직';
+    document.getElementById('jExperience').value='';
+    document.getElementById('jEducation').value='';
+    document.getElementById('jScale').value='mid';
+    document.getElementById('jDeadlineType').value='date';
+    document.getElementById('jDeadline').value='';
+    document.getElementById('jSrc').value='custom';
+    document.querySelector('input[name="salaryType"][value="range"]').checked=true;
+    onSalaryTypeChange();
+  }
+  wrap.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.hideJobForm=function(){document.getElementById('jobFormWrap').style.display='none';editingJobIdx=null;}
+window.editJob=function(idx){showJobForm(idx);navTo('jobs');}
+window.onDeadlineTypeChange=function(){
+  const t=document.getElementById('jDeadlineType').value;
+  document.getElementById('jDeadlineRow').style.display=t==='date'?'':'none';
+}
+window.onSalaryTypeChange=function(){
+  const t=document.querySelector('input[name="salaryType"]:checked')?.value;
+  const row=document.getElementById('salaryInputRow');
+  const tilde=document.getElementById('salaryTilde');
+  const toWrap=document.getElementById('jSalaryTo')?.parentElement;
+  if(t==='negotiable'){row.style.display='none';}
+  else{row.style.display='';
+    const showTo=t==='range';
+    if(tilde)tilde.style.display=showTo?'':'none';
+    const toEl=document.getElementById('jSalaryTo');
+    if(toEl)toEl.parentElement.style.display=showTo?'':'none';
+  }
+}
+
+window.submitAdminJob=async function(){
+  const title=document.getElementById('jTitle').value.trim();
+  const company=document.getElementById('jCompany').value.trim();
+  const url=document.getElementById('jUrl').value.trim();
+  const err=document.getElementById('jobAddErr');
+  if(!title||!company){err.textContent='공고 제목과 회사명은 필수입니다.';err.style.display='block';return;}
+  if(url&&!url.startsWith('http')){err.textContent='URL은 https://로 시작해야 합니다.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('jobSubmitBtn');
+  btn.disabled=true;btn.textContent='저장 중…';
+  const sType=document.querySelector('input[name="salaryType"]:checked')?.value;
+  let salary='';
+  if(sType==='negotiable') salary='협의';
+  else{
+    const fr=(document.getElementById('jSalaryFrom').value||'').replace(/,/g,'');
+    const to=(document.getElementById('jSalaryTo').value||'').replace(/,/g,'');
+    if(fr&&to&&sType==='range') salary=`${Number(fr).toLocaleString()}~${Number(to).toLocaleString()}만원`;
+    else if(fr&&sType==='above') salary=`${Number(fr).toLocaleString()}만원 이상`;
+    else if(fr&&sType==='below') salary=`${Number(fr).toLocaleString()}만원 이하`;
+    else if(fr&&sType==='fixed') salary=`${Number(fr).toLocaleString()}만원`;
+  }
+  const deadlineType=document.getElementById('jDeadlineType').value;
+  const job={
+    id: editingJobIdx!==null&&editingJobIdx!==undefined ? JOBS[editingJobIdx].id : Date.now(),
+    title,company,
+    role:document.getElementById('jRole').value.trim()||'미정',
+    industry:document.getElementById('jIndustry').value.trim()||'미정',
+    location:document.getElementById('jLocation').value.trim()||'미정',
+    jobType:document.getElementById('jJobType').value,
+    experience:document.getElementById('jExperience').value,
+    education:document.getElementById('jEducation').value,
+    scale:document.getElementById('jScale').value,
+    scaleName:scaleLabel(document.getElementById('jScale').value),
+    deadlineType,
+    deadline:deadlineType==='date'?document.getElementById('jDeadline').value:'',
+    source:document.getElementById('jSrc').value,
+    url,
+    salary,
+    description:document.getElementById('jDesc').value.trim(),
+    requirements:document.getElementById('jRequirements').value.trim(),
+    createdAt:editingJobIdx!==null&&editingJobIdx!==undefined?JOBS[editingJobIdx].createdAt:new Date().toISOString(),
+    isCustom:true,
+  };
+  try{
+    await window._fb.save(job);
+    toast(editingJobIdx!==null?'공고가 수정되었습니다.':'공고가 등록되었습니다.','success');
+    hideJobForm();
+  }catch(e){toast('저장 실패: '+e.message,'error');}
+  btn.disabled=false;btn.textContent=editingJobIdx!==null?'수정':'등록';
+}
+window.deleteJob=async function(id){
+  if(!confirm('이 공고를 삭제하시겠습니까?')) return;
+  try{await window._fb.delete(id);toast('삭제되었습니다.','success');}
+  catch(e){toast('삭제 실패','error');}
+}
+window.bulkDelete=async function(){
+  if(!selectedIds.size) return;
+  if(!confirm(`선택한 ${selectedIds.size}개 공고를 삭제하시겠습니까?`)) return;
+  try{
+    await Promise.all([...selectedIds].map(id=>window._fb.delete(id)));
+    selectedIds.clear();updateBulkBar();
+    toast(`${selectedIds.size}개 삭제 완료`,'success');
+  }catch(e){toast('삭제 실패','error');}
+}
+
+// CSV Upload
+window.handleAdminCsvUpload=function(input){
+  const file=input.files[0];if(!file)return;
+  const prog=document.getElementById('uploadProgress');
+  prog.textContent='파일 분석 중…';prog.style.display='';
+  // Delegate to main app's handler by dispatching to shared logic
+  // Re-use the shared CSV parse approach
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    try{
+      let rows=[];
+      if(file.name.endsWith('.csv')){
+        const text=e.target.result;
+        rows=parseCSV(text);
+      } else {
+        prog.textContent='Excel 파일은 index.html의 공고 관리에서 일괄 등록하세요.';
+        setTimeout(()=>prog.style.display='none',3000);
+        input.value='';return;
+      }
+      if(!rows.length){toast('데이터가 없습니다.','error');prog.style.display='none';input.value='';return;}
+      prog.textContent=`${rows.length}개 공고 저장 중…`;
+      const jobs=rows.map((r,i)=>buildJobFromRow(r,i));
+      await window._fb.saveAll(jobs);
+      prog.textContent=`✓ ${jobs.length}개 공고 등록 완료`;
+      toast(`${jobs.length}개 공고 등록 완료`,'success');
+      setTimeout(()=>prog.style.display='none',3000);
+    }catch(err){toast('파일 처리 실패: '+err.message,'error');prog.style.display='none';}
+    input.value='';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+function parseCSV(text){
+  const lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const header=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+  return lines.slice(1).map(l=>{
+    const cols=l.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const row={};header.forEach((h,i)=>row[h]=cols[i]||'');return row;
+  }).filter(r=>Object.values(r).some(v=>v));
+}
+function buildJobFromRow(r,i){
+  const colMap={
+    '기업명':'company','직무':'role','근무형태':'jobType','경력 구분':'experience',
+    '학력':'education','업종':'industry','근무 지역':'location','연봉':'salary',
+    '마감일':'deadline','매칭 키워드':'keywords','출처':'source','사이트 주소':'url',
+    '우대사항':'requirements','기업 규모':'scaleName',
+  };
+  const job={id:Date.now()+i,isCustom:true,createdAt:new Date().toISOString()};
+  Object.entries(colMap).forEach(([k,v])=>{if(r[k]!==undefined)job[v]=r[k];});
+  job.title=job.role||r['직무']||'채용공고';
+  job.company=job.company||'미정';
+  const sl=job.scaleName||'';
+  job.scale=sl.includes('대기업')?'large':sl.includes('스타트업')?'startup':sl.includes('공기업')||sl.includes('공공')?'public':'mid';
+  const dl=job.deadline||'';
+  job.deadlineType=dl==='상시채용'?'always':dl==='채용시 마감'?'untilFilled':'date';
+  if(job.deadlineType!=='date') job.deadline='';
+  return job;
+}
+
+// Bulk Edit
+window.openBulkEdit=function(){document.getElementById('bulkEditModal').classList.add('open');}
+window.closeBulkEdit=function(){document.getElementById('bulkEditModal').classList.remove('open');}
+window.onBeDeadlineTypeChange=function(){
+  const t=document.getElementById('beDeadlineType').value;
+  document.getElementById('beDeadlineRow').style.display=t&&t!=='always'&&t!=='untilFilled'?'':'none';
+}
+window.submitBulkEdit=async function(){
+  const dt=document.getElementById('beDeadlineType').value;
+  const dl=document.getElementById('beDeadline').value;
+  const jt=document.getElementById('beJobType').value;
+  const sc=document.getElementById('beScale').value;
+  const ex=document.getElementById('beExperience').value;
+  const sal=document.getElementById('beSalary').value.trim();
+  const err=document.getElementById('beErr');
+  if(!dt&&!jt&&!sc&&!ex&&!sal){err.style.display='block';return;}
+  err.style.display='none';
+  const toUpdate=JOBS.filter(j=>selectedIds.has(String(j.id)));
+  try{
+    await Promise.all(toUpdate.map(j=>{
+      const upd={...j};
+      if(dt){upd.deadlineType=dt;if(dt==='date')upd.deadline=dl;else upd.deadline='';}
+      if(jt) upd.jobType=jt;
+      if(sc){upd.scale=sc;upd.scaleName=scaleLabel(sc);}
+      if(ex) upd.experience=ex;
+      if(sal) upd.salary=sal;
+      return window._fb.save(upd);
+    }));
+    selectedIds.clear();updateBulkBar();closeBulkEdit();
+    toast('일괄 수정 완료','success');
+  }catch(e){toast('수정 실패','error');}
+}
+
+// ── Keywords ──
+let tempKws=[];
+async function loadKws(){
+  try{
+    const kws=await window._fb.getKeywords();
+    if(kws) KWS=kws;
+    else KWS=JSON.parse(localStorage.getItem('ajs_kws')||'[]');
+  }catch{KWS=JSON.parse(localStorage.getItem('ajs_kws')||'[]');}
+  tempKws=[...KWS];
+}
+function renderKws(){
+  tempKws=[...KWS];refreshKwTags();
+}
+function refreshKwTags(){
+  const wrap=document.getElementById('kwTags');
+  if(!tempKws.length){wrap.innerHTML='<span style="color:var(--text-3);font-size:13px">등록된 키워드가 없습니다.</span>';return;}
+  wrap.innerHTML=tempKws.map((k,i)=>`<span class="kw-tag">${k}<button onclick="removeKw(${i})">×</button></span>`).join('');
+}
+window.addKw=function(){
+  const val=document.getElementById('newKwInput').value.trim();
+  const err=document.getElementById('kwErr');
+  if(!val){err.style.display='block';return;}
+  err.style.display='none';
+  if(!tempKws.includes(val))tempKws.push(val);
+  document.getElementById('newKwInput').value='';
+  refreshKwTags();
+}
+window.removeKw=function(i){tempKws.splice(i,1);refreshKwTags();}
+window.saveKws=async function(){
+  KWS=[...tempKws];
+  localStorage.setItem('ajs_kws',JSON.stringify(KWS));
+  try{await window._fb.saveKeywords(KWS);toast('키워드가 저장되었습니다.','success');}
+  catch(e){toast('저장 실패','error');}
+}
+
+// ── Notices ──
+let noticeFilter='all';
+let selectedNoticeId=null;
+let noticeFiles=[];
+
+async function loadNotices(){
+  try{
+    notices=await window._fb.getNotices();
+    renderNoticeList();
+    if(notices.length) selectNotice(notices[0].id);
+  }catch(e){document.getElementById('noticeListCol').innerHTML='<div class="table-empty">불러오기 실패</div>';}
+}
+
+window.setNoticeFilter=function(f,btn){
+  noticeFilter=f;
+  document.querySelectorAll('.notice-filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderNoticeList();
+}
+
+function catPillClass(type){
+  return type==='긴급'?'urgent':type==='업데이트'?'update':type==='점검'?'check':'pin';
+}
+function catIcon(type){
+  return type==='긴급'?'🚨':type==='업데이트'?'🔄':type==='점검'?'🔧':'📌';
+}
+
+function renderNoticeList(){
+  const col=document.getElementById('noticeListCol');
+  let filtered=notices;
+  if(noticeFilter!=='all') filtered=notices.filter(n=>n.type===noticeFilter);
+  document.getElementById('noticeTotalCount').textContent=`총 ${filtered.length}건`;
+  if(!filtered.length){col.innerHTML='<div class="table-empty">공지사항이 없습니다.</div>';return;}
+  // 핀 고정 먼저
+  filtered=[...filtered].sort((a,b)=>{
+    if(a.pinned&&!b.pinned)return -1;
+    if(!a.pinned&&b.pinned)return 1;
+    return (b.createdAt||'').localeCompare(a.createdAt||'');
+  });
+  col.innerHTML=filtered.map(n=>`
+    <div class="notice-list-item ${n.pinned?'pinned':''} ${selectedNoticeId===n.id?'active':''}" onclick="selectNotice('${n.id}')">
+      <span class="notice-cat-pill ${catPillClass(n.type)}">${catIcon(n.type)} ${n.type||'공지'}</span>
+      <div style="flex:1;min-width:0">
+        <div class="notice-list-title">${n.pinned?'<span class="notice-pin-icon">📌</span>':''} ${n.title||'(제목 없음)'}</div>
+        <div class="notice-list-meta">${fmtDate(n.createdAt)} ${n.published?'· 게시됨':'· 비공개'}</div>
+      </div>
+    </div>`).join('');
+}
+
+window.selectNotice=function(id){
+  selectedNoticeId=id;
+  document.querySelectorAll('.notice-list-item').forEach(el=>{
+    el.classList.toggle('active', el.onclick.toString().includes(`'${id}'`));
+  });
+  const n=notices.find(x=>x.id===id);
+  if(!n) return;
+  const col=document.getElementById('noticeDetailCol');
+
+  // 이전/다음 인덱스
+  const idx=notices.indexOf(n);
+  const prevId=idx>0?notices[idx-1].id:null;
+  const nextId=idx<notices.length-1?notices[idx+1].id:null;
+
+  // 첨부파일 (있으면 렌더)
+  const attachHtml=n.files&&n.files.length?`
+    <div class="notice-attach-section">
+      <div class="notice-attach-title">📎 첨부</div>
+      ${n.files.map(f=>`
+        <div class="notice-attach-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <span>${f.name}</span>
+          <span style="margin-left:auto;color:var(--text-3)">${f.size||''}</span>
+        </div>`).join('')}
+    </div>`:
+    // 더미 첨부 (없을 경우 빈 영역 — 이미지1 참고)
+    '';
+
+  col.innerHTML=`
+    <div class="notice-detail-head">
+      <div>
+        <span class="notice-cat-pill ${catPillClass(n.type)}" style="display:inline-flex;margin-bottom:8px">${catIcon(n.type)} ${n.type||'공지'}</span>
+        ${n.pinned?'<span style="font-size:11px;color:var(--orange);margin-left:6px">📌 핀</span>':''}
+        <div class="notice-detail-title">${n.title||'(제목 없음)'}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;margin-top:4px">
+        <button class="action-btn" onclick="editNotice('${n.id}')" style="font-size:11px;padding:5px 10px">수정</button>
+        <button class="action-btn danger" onclick="deleteNotice('${n.id}')" style="font-size:11px;padding:5px 10px">삭제</button>
+      </div>
+    </div>
+    <div class="notice-detail-meta">
+      <span>관리자</span>
+      <span>·</span>
+      <span>${fmtDate(n.createdAt)}</span>
+      ${n.views?`<span>· 조회 ${n.views}</span>`:''}
+      <span>· ${n.published?'게시됨':'비공개'}</span>
+    </div>
+    <div class="notice-detail-body">${(n.content||'').replace(/</g,'&lt;')}</div>
+    ${attachHtml}
+    <div class="notice-nav-row">
+      <button class="notice-nav-btn" onclick="selectNotice('${prevId}')" ${!prevId?'disabled':''}>← 이전글</button>
+      <button class="notice-nav-btn" onclick="renderNoticeList()">목록</button>
+      <button class="notice-nav-btn" onclick="selectNotice('${nextId}')" ${!nextId?'disabled':''}>다음글 →</button>
+    </div>
+  `;
+}
+
+window.editNotice=function(id){
+  const n=notices.find(x=>x.id===id);
+  if(!n) return;
+  editingNoticeId=id;
+  showNoticeForm(id);
+  document.getElementById('nTitle').value=n.title||'';
+  document.getElementById('nContent').value=n.content||'';
+  document.getElementById('nPublish').checked=!!n.published;
+  document.getElementById('nPinned').checked=!!n.pinned;
+  document.getElementById('nCharCount').textContent=(n.content||'').length+' / 1000';
+  const typeVal=n.type||'공지';
+  const radio=document.querySelector(`input[name="nType"][value="${typeVal}"]`);
+  if(radio) radio.checked=true;
+  document.getElementById('noticeSubmitBtn').textContent='수정';
+}
+
+window.showNoticeForm=function(id){
+  editingNoticeId=id||null;
+  const modal=document.getElementById('noticeFormModal');
+  modal.classList.add('open');
+  document.getElementById('noticeFormTitle').textContent=id?'공지 수정':'새 공지 작성';
+  document.getElementById('noticeSubmitBtn').textContent=id?'수정':'등록';
+  if(!id){
+    document.getElementById('nTitle').value='';
+    document.getElementById('nContent').value='';
+    document.getElementById('nPublish').checked=false;
+    document.getElementById('nPinned').checked=false;
+    document.querySelector('input[name="nType"][value="공지"]').checked=true;
+    document.getElementById('nCharCount').textContent='0 / 1000';
+    document.getElementById('nFileList').innerHTML='';
+    noticeFiles=[];
+  }
+}
+window.hideNoticeForm=function(){document.getElementById('noticeFormModal').classList.remove('open');}
+window.updateNoticeCatStyle=function(){}
+window.updateNoticeTypeStyle=function(){}
+window.onNoticeFileSelect=function(input){
+  const files=Array.from(input.files);
+  noticeFiles=[...noticeFiles,...files];
+  const list=document.getElementById('nFileList');
+  list.innerHTML=noticeFiles.map((f,i)=>`
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border:1px solid var(--card-border);border-radius:6px;color:var(--text-2)">
+      📎 ${f.name} <span style="color:var(--text-3)">(${(f.size/1024).toFixed(0)}KB)</span>
+      <button onclick="noticeFiles.splice(${i},1);onNoticeFileSelect({files:[]})" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:12px;margin-left:2px">×</button>
+    </div>`).join('');
+}
+window.submitAdminNotice=async function(){
+  const title=document.getElementById('nTitle').value.trim();
+  const content=document.getElementById('nContent').value.trim();
+  const err=document.getElementById('noticeAddErr');
+  if(!title||!content){err.textContent='제목과 내용을 입력하세요.';err.style.display='block';return;}
+  err.style.display='none';
+  const btn=document.getElementById('noticeSubmitBtn');
+  btn.disabled=true;btn.textContent='저장 중…';
+  const nType=document.querySelector('input[name="nType"]:checked')?.value||'공지';
+  // 파일 메타만 저장 (실제 업로드는 추후 Storage 연동)
+  const filesData=noticeFiles.map(f=>({name:f.name,size:`${(f.size/1024).toFixed(0)}KB`}));
+  const notice={
+    id:editingNoticeId||('n_'+Date.now()),
+    title,content,type:nType,
+    pinned:document.getElementById('nPinned').checked,
+    published:document.getElementById('nPublish').checked,
+    files:filesData,
+    createdAt:editingNoticeId?(notices.find(n=>n.id===editingNoticeId)?.createdAt||new Date().toISOString()):new Date().toISOString(),
+  };
+  try{
+    await window._fb.saveNotice(notice);
+    toast(editingNoticeId?'공지가 수정되었습니다.':'공지사항이 등록되었습니다.','success');
+    hideNoticeForm();loadNotices();
+  }catch(e){toast('저장 실패','error');}
+  btn.disabled=false;btn.textContent=editingNoticeId?'수정':'등록';
+}
+window.deleteNotice=async function(id){
+  if(!confirm('이 공지를 삭제하시겠습니까?')) return;
+  try{
+    await window._fb.deleteNotice(id);
+    toast('삭제되었습니다.','success');
+    selectedNoticeId=null;
+    document.getElementById('noticeDetailCol').innerHTML='<div class="notice-detail-empty"><div style="font-size:13px;color:var(--text-3)">공지가 삭제되었습니다.</div></div>';
+    loadNotices();
+  }catch(e){toast('삭제 실패','error');}
+}
+
+// ── Feedback ──
+window.loadFeedbacks=async function(){
+  document.getElementById('fbList').innerHTML='<div class="table-empty">불러오는 중…</div>';
+  try{
+    feedbacks=await window._fb.getFeedbacks();
+    renderFbs();
+    document.getElementById('statFb').textContent=feedbacks.length;
+  }catch(e){document.getElementById('fbList').innerHTML='<div class="table-empty">불러오기 실패</div>';}
+}
+function renderFbs(){
+  const el=document.getElementById('fbList');
+  if(!feedbacks.length){el.innerHTML='<div class="table-empty">피드백이 없습니다.</div>';return;}
+  el.innerHTML=feedbacks.map(f=>`
+    <div class="fb-item">
+      <div style="flex:1">
+        <div class="fb-text">${f.text||''}</div>
+        <div class="fb-meta">${fmtDate(f.createdAt)}</div>
+      </div>
+      <button class="fb-del" onclick="deleteFb('${f.id}')" title="삭제">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+      </button>
+    </div>`).join('');
+}
+window.deleteFb=async function(id){
+  if(!confirm('이 피드백을 삭제하시겠습니까?')) return;
+  try{await window._fb.deleteFeedback(id);feedbacks=feedbacks.filter(f=>f.id!==id);renderFbs();toast('삭제되었습니다.');}
+  catch(e){toast('삭제 실패','error');}
+}
+
+// ── API Keys ──
+function renderApiItems(){
+  document.getElementById('apiItems').innerHTML=dynamicApis.map((api,i)=>`
+    <div class="api-item">
+      <span class="api-dot ${api.value?'live':''}"></span>
+      <span class="api-name">${api.name}</span>
+      <span class="api-status ${api.value?'live':''}">${api.value?'연동됨':'미연동'}</span>
+      <button onclick="removeApiItem(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-3);font-size:16px;line-height:1;transition:color 0.2s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text-3)'">×</button>
+      <input class="api-key-input" id="apiVal_${i}" type="password" value="${api.value}" placeholder="API Key 입력">
+    </div>`).join('')||'<div style="color:var(--text-3);font-size:13px;padding:8px">등록된 API 없음</div>';
+}
+window.addApiItem=function(){
+  const name=document.getElementById('newApiName').value.trim();
+  const key=document.getElementById('newApiKey').value.trim();
+  if(!name||!key){document.getElementById('apiAddErr').style.display='block';return;}
+  document.getElementById('apiAddErr').style.display='none';
+  dynamicApis.push({key:name.replace(/\s+/g,'_').toLowerCase()+'_'+Date.now(),name,value:key});
+  document.getElementById('newApiName').value='';document.getElementById('newApiKey').value='';
+  renderApiItems();
+}
+window.removeApiItem=function(i){dynamicApis.splice(i,1);renderApiItems();}
+window.saveApiKeys=function(){
+  dynamicApis.forEach((api,i)=>{const el=document.getElementById('apiVal_'+i);if(el)api.value=el.value.trim();});
+  localStorage.setItem('ajs_dyn_apis',JSON.stringify(dynamicApis));
+  toast('API 키가 저장되었습니다.','success');renderApiItems();
+}
+window.confirmResetAll=async function(){
+  if(!confirm('⚠️ 모든 공고 데이터를 초기화합니다. 이 작업은 되돌릴 수 없습니다.\n계속하시겠습니까?')) return;
+  try{await window._fb.replaceAll([]);toast('초기화 완료','success');}
+  catch(e){toast('초기화 실패','error');}
+}
+</script>
+</body>
+</html>
