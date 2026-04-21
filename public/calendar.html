@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마감일 캘린더 — Academy Job Scope</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="js/config.js"></script>
+<script type="module" src="js/firebase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F4F4F0;--bg-card:#fff;--bg-surface:#EBEBЕ6;
+  --text-primary:#111116;--text-secondary:#5A5A68;--text-hint:#9898A8;
+  --border:rgba(17,17,22,0.09);--navy:#0B1D35;--navy-light:#1A3560;
+  --green:#1EA87A;--green-light:#E8F8F2;
+  --red:#E05252;--red-light:#FDF0F0;
+  --orange:#F59E3A;--orange-light:#FFF7ED;
+  --blue:#3B82F6;--blue-light:#EFF6FF;
+  --radius-md:10px;--radius-lg:14px;
+  --shadow-card:0 1px 4px rgba(0,0,0,0.06);
+  --shadow-hover:0 6px 20px rgba(0,0,0,0.1);
+}
+body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh}
+body.dark{--bg:#080E1A;--bg-card:#0F1929;--bg-surface:#162035;--text-primary:#E2E8F4;--text-secondary:#7A85A0;--text-hint:#445068;--border:rgba(56,217,169,0.12);--navy:#1A3560;--navy-light:#2A4A80;--green:#38D9A9;--green-light:rgba(56,217,169,0.1);--shadow-card:0 1px 6px rgba(0,0,0,0.4);--shadow-hover:0 8px 28px rgba(0,0,0,0.5)}
+
+/* Header */
+header{background:#0B1D35;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 2rem;position:sticky;top:0;z-index:100}
+body.dark header{background:rgba(8,14,26,0.96)}
+.header-inner{max-width:1200px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
+.logo-area{display:flex;align-items:center;gap:10px;text-decoration:none;cursor:pointer}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#38D9A9,#1EA87A);display:flex;align-items:center;justify-content:center}
+.logo-mark img{width:65%;height:65%;object-fit:contain;filter:brightness(10)}
+.logo-text{font-size:15px;font-weight:700;color:#fff}
+.header-nav{display:flex;align-items:center;gap:8px}
+.nav-back{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;color:rgba(255,255,255,0.7);font-size:13px;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .15s}
+.nav-back:hover{background:rgba(255,255,255,0.14);color:#fff}
+.page-tabs{display:flex;gap:4px}
+.page-tab{padding:6px 14px;border:none;border-radius:20px;font-size:12px;font-weight:600;font-family:inherit;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);cursor:pointer;transition:all .15s}
+.page-tab.active,.page-tab:hover{background:rgba(56,217,169,0.2);color:#38D9A9}
+
+/* Layout */
+.page-wrap{max-width:1200px;margin:0 auto;padding:2rem 2rem 4rem;display:grid;grid-template-columns:1fr 280px;gap:24px;align-items:start}
+@media(max-width:900px){.page-wrap{grid-template-columns:1fr;padding:1.5rem 1rem 3rem}}
+
+/* Calendar */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.cal-nav{display:flex;align-items:center;gap:12px}
+.cal-title{font-size:20px;font-weight:800;color:var(--text-primary)}
+.cal-nav-btn{background:none;border:1px solid var(--border);border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-secondary);font-size:14px;transition:all .15s}
+.cal-nav-btn:hover{background:var(--bg-card);color:var(--text-primary)}
+.today-btn{padding:6px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-secondary);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s}
+.today-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* Legend */
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-secondary)}
+.legend-dot{width:10px;height:10px;border-radius:3px}
+.ld-urgent{background:var(--red)}
+.ld-soon{background:var(--orange)}
+.ld-normal{background:var(--blue)}
+.ld-new{background:var(--green)}
+
+/* Cal grid */
+.cal-grid{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-card)}
+.cal-weekdays{display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)}
+.cal-weekday{padding:10px 8px;text-align:center;font-size:11px;font-weight:700;color:var(--text-hint);letter-spacing:0.5px;text-transform:uppercase}
+.cal-weekday:first-child{color:var(--red)}
+.cal-weekday:last-child{color:var(--blue)}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr)}
+.cal-day{min-height:90px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;position:relative;cursor:default}
+.cal-day:nth-child(7n){border-right:none}
+.cal-day.other-month{background:rgba(0,0,0,0.02)}
+body.dark .cal-day.other-month{background:rgba(255,255,255,0.01)}
+.cal-day.today{background:rgba(56,217,169,0.04)}
+.cal-day-num{font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:4px;line-height:1}
+.cal-day.today .cal-day-num{width:22px;height:22px;background:var(--green);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800}
+.cal-day.sunday .cal-day-num{color:var(--red)}
+.cal-day.saturday .cal-day-num{color:var(--blue)}
+.cal-events{display:flex;flex-direction:column;gap:2px}
+.cal-event{font-size:10px;font-weight:600;padding:2px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:opacity .15s}
+.cal-event:hover{opacity:.8}
+.cal-event.urgent{background:rgba(224,82,82,0.15);color:var(--red)}
+.cal-event.soon{background:rgba(245,158,58,0.15);color:var(--orange)}
+.cal-event.normal{background:rgba(59,130,246,0.12);color:var(--blue)}
+.cal-event.notice{background:rgba(156,163,175,0.15);color:var(--text-secondary);font-weight:400}
+.cal-event.new{background:rgba(30,168,122,0.12);color:var(--green)}
+.cal-more{font-size:9px;color:var(--text-hint);padding:1px 4px;cursor:pointer}
+.cal-more:hover{color:var(--text-primary)}
+
+/* Sidebar */
+.sidebar-card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;margin-bottom:16px;box-shadow:var(--shadow-card)}
+.sidebar-title{font-size:12px;font-weight:700;color:var(--text-secondary);letter-spacing:.5px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.urgent-badge{font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;background:rgba(224,82,82,0.1);color:var(--red)}
+.deadline-item{padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;border-radius:6px;padding:10px 8px;margin:-2px -8px}
+.deadline-item:hover{background:var(--bg-surface)}
+.deadline-item:last-child{border-bottom:none}
+.dl-date{font-size:10px;font-weight:600;color:var(--text-hint);margin-bottom:3px;display:flex;align-items:center;gap:4px}
+.dl-dday{font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px}
+.dl-dday.urgent{background:rgba(224,82,82,0.1);color:var(--red)}
+.dl-dday.soon{background:rgba(245,158,58,0.1);color:var(--orange)}
+.dl-dday.normal{background:rgba(59,130,246,0.1);color:var(--blue)}
+.dl-title{font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:2px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-company{font-size:11px;color:var(--text-secondary)}
+.ics-btn{width:100%;padding:10px;background:var(--navy);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .15s}
+.ics-btn:hover{background:var(--navy-light)}
+
+/* Detail popup */
+.day-popup{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:300;align-items:center;justify-content:center}
+.day-popup.open{display:flex}
+.popup-card{background:var(--bg-card);border-radius:var(--radius-lg);padding:24px;width:360px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.popup-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.popup-date{font-size:16px;font-weight:800;color:var(--text-primary)}
+.popup-close{background:none;border:none;cursor:pointer;color:var(--text-hint);font-size:20px;line-height:1}
+.popup-job{padding:12px;background:var(--bg-surface);border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.popup-job:hover{background:var(--bg-card);box-shadow:var(--shadow-hover)}
+.popup-job-title{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:3px}
+.popup-job-meta{font-size:11px;color:var(--text-secondary)}
+.popup-job-dday{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;margin-top:5px}
+
+.icon-moon-sub,.icon-sun-sub{transition:opacity .2s}
+</style>
+
+</head>
+<body>
+<script>
+/* ── 테마 즉시 적용 (FOUC 방지) ── */
+(function(){
+  try{ if(localStorage.getItem('ajs_theme')==='dark') document.body.classList.add('dark'); }catch(e){}
+})();
+</script>
+<header>
+  <div class="header-inner">
+    <a class="logo-area" href="index.html">
+      <div class="logo-mark"><img src="logo.png" alt="logo"></div>
+      <span class="logo-text">Academy Job Scope</span>
+    </a>
+    <div class="header-nav">
+      <div class="page-tabs">
+        <a href="ask.html" class="page-tab" style="display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="9" y1="10" x2="15" y2="10"/><line x1="9" y1="14" x2="13" y2="14"/></svg> AI Ask</a>
+        <span class="page-tab active" style="display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> 캘린더</span>
+        <a href="insights.html" class="page-tab" style="display:flex;align-items:center;gap:5px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> Insights</a>
+      </div>
+
+      <button onclick="toggleTheme()" title="다크/라이트 전환" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.5);padding:7px;border-radius:8px;display:flex;align-items:center;justify-content:center;transition:all .15s" onmouseover="this.style.background='rgba(255,255,255,0.08)';this.style.color='#fff'" onmouseout="this.style.background='none';this.style.color='rgba(255,255,255,0.5)'">
+          <svg class="th-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="th-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+      <a href="index.html" class="nav-back">← 공고 목록</a>
+    </div>
+  </div>
+</header>
+
+<div class="page-wrap">
+  <div>
+    <div class="cal-header">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" id="prevBtn">‹</button>
+        <div class="cal-title" id="calTitle">2026년 4월</div>
+        <button class="cal-nav-btn" id="nextBtn">›</button>
+        <button class="today-btn" id="todayBtn">오늘</button>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="legend-dot ld-urgent"></span>마감임박</span>
+        <span class="legend-item"><span class="legend-dot ld-soon"></span>D-14 이내</span>
+        <span class="legend-item"><span class="legend-dot ld-normal"></span>일반</span>
+        <span class="legend-item"><span class="legend-dot ld-new"></span>신규 오픈</span>
+      </div>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-weekdays">
+        <div class="cal-weekday">일</div><div class="cal-weekday">월</div>
+        <div class="cal-weekday">화</div><div class="cal-weekday">수</div>
+        <div class="cal-weekday">목</div><div class="cal-weekday">금</div>
+        <div class="cal-weekday">토</div>
+      </div>
+      <div class="cal-days" id="calDays"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="sidebar-card">
+      <div class="sidebar-title">
+        이번 주 마감
+        <span class="urgent-badge" id="urgentCount">0건</span>
+      </div>
+      <div id="urgentList"><div style="color:var(--text-hint);font-size:13px;text-align:center;padding:1rem">불러오는 중…</div></div>
+    </div>
+    <div class="sidebar-card">
+      <button class="ics-btn" id="icsBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        .ics 파일로 내보내기
+      </button>
+      <p style="font-size:11px;color:var(--text-hint);margin-top:8px;text-align:center">Google 캘린더 · Apple 캘린더에서 열 수 있습니다</p>
+    </div>
+  </div>
+</div>
+
+<!-- Day popup -->
+<div class="day-popup" id="dayPopup" onclick="closeDayPopup(event)">
+  <div class="popup-card">
+    <div class="popup-head">
+      <div class="popup-date" id="popupDate"></div>
+      <button class="popup-close" onclick="document.getElementById('dayPopup').classList.remove('open')">×</button>
+    </div>
+    <div id="popupJobs"></div>
+  </div>
+</div>
+
+<script type="module">
+function waitForFb(cb){ if(window._fb) cb(); else window.addEventListener('firebase-ready',cb,{once:true}); }
+
+let JOBS=[];
+let curYear=new Date().getFullYear();
+let curMonth=new Date().getMonth();
+
+function dday(dl){if(!dl)return 999;const d=new Date(dl);d.setHours(23,59,59,999);return Math.ceil((d-new Date())/86400000);}
+function fmtDate(y,m,d){return`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`}
+
+function eventClass(j){
+  if(j.deadlineType==='always'||j.deadlineType==='untilFilled') return 'notice';
+  const d=dday(j.deadline);
+  if(d<0) return null;
+  if(d<=7) return 'urgent';
+  if(d<=14) return 'soon';
+  return 'normal';
+}
+
+function renderCal(){
+  const y=curYear, m=curMonth;
+  document.getElementById('calTitle').textContent=`${y}년 ${m+1}월`;
+  const first=new Date(y,m,1).getDay();
+  const last=new Date(y,m+1,0).getDate();
+  const today=new Date();
+  const todayStr=fmtDate(today.getFullYear(),today.getMonth(),today.getDate());
+
+  // job by deadline date
+  const jobMap={};
+  JOBS.forEach(j=>{
+    if(!j.deadline || j.deadlineType==='always') return;
+    if(!jobMap[j.deadline]) jobMap[j.deadline]=[];
+    jobMap[j.deadline].push(j);
+  });
+  // new jobs by createdAt
+  const newMap={};
+  JOBS.forEach(j=>{
+    if(!j.createdAt) return;
+    const d=j.createdAt.slice(0,10);
+    if(!newMap[d]) newMap[d]=[];
+    newMap[d].push(j);
+  });
+
+  const days=document.getElementById('calDays');
+  days.innerHTML='';
+
+  // prev month padding
+  const prevLast=new Date(y,m,0).getDate();
+  for(let i=0;i<first;i++){
+    const day=prevLast-first+i+1;
+    const cell=document.createElement('div');
+    cell.className='cal-day other-month';
+    cell.innerHTML=`<div class="cal-day-num">${day}</div>`;
+    days.appendChild(cell);
+  }
+
+  for(let d=1;d<=last;d++){
+    const dateStr=fmtDate(y,m,d);
+    const cell=document.createElement('div');
+    const dow=(first+d-1)%7;
+    let cls='cal-day';
+    if(dateStr===todayStr) cls+=' today';
+    if(dow===0) cls+=' sunday';
+    if(dow===6) cls+=' saturday';
+    cell.className=cls;
+
+    const numEl=document.createElement('div');
+    numEl.className='cal-day-num';
+    numEl.textContent=d;
+    cell.appendChild(numEl);
+
+    const evEl=document.createElement('div');
+    evEl.className='cal-events';
+
+    const deadlineJobs=jobMap[dateStr]||[];
+    const newJobs=(newMap[dateStr]||[]).filter(j=>!deadlineJobs.find(x=>x.id===j.id));
+    const allEvents=[...deadlineJobs.map(j=>({j,type:'deadline'})), ...newJobs.slice(0,1).map(j=>({j,type:'new'}))];
+    const maxShow=2;
+    allEvents.slice(0,maxShow).forEach(({j,type})=>{
+      const ev=document.createElement('div');
+      const cls=type==='new'?'new':(eventClass(j)||'normal');
+      ev.className=`cal-event ${cls}`;
+      ev.textContent=(type==='new'?'→ ':'')+(j.company||j.title||'공고');
+      ev.title=j.title;
+      ev.onclick=()=>showDayPopup(dateStr,d);
+      evEl.appendChild(ev);
+    });
+    if(allEvents.length>maxShow){
+      const more=document.createElement('div');
+      more.className='cal-more';
+      more.textContent=`+${allEvents.length-maxShow}개 더`;
+      more.onclick=()=>showDayPopup(dateStr,d);
+      evEl.appendChild(more);
+    }
+    cell.appendChild(evEl);
+    if(allEvents.length>0) cell.onclick=()=>showDayPopup(dateStr,d);
+    days.appendChild(cell);
+  }
+
+  // next month
+  const total=first+last;
+  const remain=(7-total%7)%7;
+  for(let i=1;i<=remain;i++){
+    const cell=document.createElement('div');
+    cell.className='cal-day other-month';
+    cell.innerHTML=`<div class="cal-day-num">${i}</div>`;
+    days.appendChild(cell);
+  }
+
+  renderSidebar();
+}
+
+function renderSidebar(){
+  const now=new Date();
+  const weekEnd=new Date(now);weekEnd.setDate(weekEnd.getDate()+7);
+  const urgent=JOBS.filter(j=>{
+    if(!j.deadline||j.deadlineType==='always'||j.deadlineType==='untilFilled') return false;
+    const d=dday(j.deadline);
+    return d>=0&&d<=7;
+  }).sort((a,b)=>dday(a.deadline)-dday(b.deadline));
+
+  document.getElementById('urgentCount').textContent=urgent.length+'건';
+  const list=document.getElementById('urgentList');
+  if(!urgent.length){list.innerHTML='<div style="color:var(--text-hint);font-size:13px;text-align:center;padding:1rem">마감임박 공고 없음</div>';return;}
+  list.innerHTML=urgent.slice(0,8).map(j=>{
+    const d=dday(j.deadline);
+    const cls=d<=3?'urgent':d<=7?'urgent':'soon';
+    const dt=j.deadline.replace(/-/g,'.');
+    return`<div class="deadline-item" onclick="window.open('${j.url||'#'}','_blank')">
+      <div class="dl-date">${dt} <span class="dl-dday ${cls}">D-${d}</span></div>
+      <div class="dl-title">${j.title||'채용공고'}</div>
+      <div class="dl-company">${j.company||''}</div>
+    </div>`;
+  }).join('');
+}
+
+function showDayPopup(dateStr,day){
+  const jobMap={};
+  JOBS.forEach(j=>{if(j.deadline===dateStr)(jobMap[dateStr]=jobMap[dateStr]||[]).push({j,type:'deadline'});});
+  JOBS.forEach(j=>{if((j.createdAt||'').startsWith(dateStr))(jobMap[dateStr]=jobMap[dateStr]||[]).push({j,type:'new'});});
+  const events=jobMap[dateStr]||[];
+  if(!events.length) return;
+
+  document.getElementById('popupDate').textContent=`${curYear}년 ${curMonth+1}월 ${day}일`;
+  document.getElementById('popupJobs').innerHTML=events.map(({j,type})=>{
+    const d=type==='deadline'?dday(j.deadline):null;
+    const cls=d===null?'new':d<=7?'urgent':d<=14?'soon':'normal';
+    const badge=type==='new'?'<span style="background:rgba(30,168,122,0.12);color:#1EA87A;font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px">신규 오픈</span>'
+      :`<span class="popup-job-dday ${cls}">${d>=0?'D-'+d:'만료'}</span>`;
+    return`<div class="popup-job" onclick="window.open('${j.url||'#'}','_blank')">
+      <div class="popup-job-title">${j.title||'채용공고'}</div>
+      <div class="popup-job-meta">${j.company||''} · ${j.role||''}</div>
+      ${badge}
+    </div>`;
+  }).join('');
+  document.getElementById('dayPopup').classList.add('open');
+}
+
+window.closeDayPopup=function(e){if(e.target===document.getElementById('dayPopup'))document.getElementById('dayPopup').classList.remove('open');}
+
+// ICS export
+document.getElementById('icsBtn').onclick=function(){
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Academy Job Scope//KR','CALSCALE:GREGORIAN'];
+  JOBS.forEach(j=>{
+    if(!j.deadline||j.deadlineType==='always'||j.deadlineType==='untilFilled') return;
+    const d=new Date(j.deadline);d.setDate(d.getDate()+1);
+    const dtend=d.toISOString().slice(0,10).replace(/-/g,'');
+    const dtstart=j.deadline.replace(/-/g,'');
+    lines.push('BEGIN:VEVENT',`DTSTART;VALUE=DATE:${dtstart}`,`DTEND;VALUE=DATE:${dtend}`,
+      `SUMMARY:[마감] ${(j.title||'채용공고').replace(/[,;\\]/g,' ')}`,
+      `DESCRIPTION:${(j.company||'').replace(/[,;\\]/g,' ')} - ${j.url||''}`,
+      `URL:${j.url||''}`,`UID:job-${j.id}@academy-job-scope`,'END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  const blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='academy-job-scope-deadlines.ics';a.click();
+}
+// Nav
+document.getElementById('prevBtn').onclick=()=>{curMonth--;if(curMonth<0){curMonth=11;curYear--;}renderCal();};
+document.getElementById('nextBtn').onclick=()=>{curMonth++;if(curMonth>11){curMonth=0;curYear++;}renderCal();};
+document.getElementById('todayBtn').onclick=()=>{const t=new Date();curYear=t.getFullYear();curMonth=t.getMonth();renderCal();};
+
+waitForFb(()=>{
+  window._fb.subscribe(jobs=>{JOBS=jobs;renderCal();});
+});
+renderCal();
+/* ── 테마 토글 ── */
+window.toggleTheme = function(){
+  var isDark = document.body.classList.toggle('dark');
+  try{ localStorage.setItem('ajs_theme', isDark ? 'dark' : 'light'); }catch(e){}
+  _syncTheme();
+};
+function _syncTheme(){
+  var isDark = document.body.classList.contains('dark');
+  document.querySelectorAll('.th-moon').forEach(function(el){ el.style.display = isDark ? 'none' : 'block'; });
+  document.querySelectorAll('.th-sun').forEach(function(el){ el.style.display = isDark ? 'block' : 'none'; });
+}
+_syncTheme();
+</script>
+</body>
+</html>

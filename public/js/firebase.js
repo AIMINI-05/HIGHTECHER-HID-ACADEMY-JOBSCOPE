@@ -147,9 +147,13 @@ window._fb = {
   }
 };
 
-// Firebase 준비 완료 신호 (폴링 방식으로 안전하게)
+// Firebase 준비 완료 신호
+// setTimeout(0): 같은 module 번들 내 다른 스크립트들이 먼저
+// addEventListener를 등록할 수 있도록 한 틱 뒤에 이벤트 발사
 window._fbReady = true;
-window.dispatchEvent(new Event('firebase-ready'));
+setTimeout(() => {
+  window.dispatchEvent(new Event('firebase-ready'));
+}, 0);
 
 // 세션 유지: 새로고침 후 로그인 상태 자동 복원
 onAuthStateChanged(auth, (user) => {

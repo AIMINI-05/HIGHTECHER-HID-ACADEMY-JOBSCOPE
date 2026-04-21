@@ -157,11 +157,7 @@ body.dark .hero-orb-1{background:radial-gradient(circle,rgba(56,217,169,0.22) 0%
 .stat-box .val.accent{color:#38D9A9}
 .stat-box .val.red{color:#FF9090}
 body.dark .stat-box .lbl{color:rgba(56,217,169,0.4)}
-body.dark .cbf-item{color:var(--text-secondary)}
-body.dark .cbf-item:hover{background:rgba(56,217,169,0.06);color:var(--text-primary)}
-body.dark .cbf-item:has(input:checked){color:var(--text-primary)}
-body.dark .cbf-label{color:var(--text-hint)}
-
+body.dark body.dark body.dark body.dark 
 /* 히어로 우측 floating cards */
 .hero-right{display:flex;align-items:center;justify-content:flex-end}
 .hero-visual{
@@ -257,32 +253,7 @@ body.dark .cbf-label{color:var(--text-hint)}
 }
 .sfg select:focus{outline:none;border-color:var(--navy-light)}
 
-/* ── 체크박스 필터 ── */
 .sidebar-filter-panel{padding-bottom:16px}
-.cbf-group{margin-bottom:16px}
-.cbf-label{
-  font-size:11px;font-weight:600;color:var(--text-hint);
-  letter-spacing:0.5px;text-transform:uppercase;
-  margin-bottom:8px;
-}
-.cbf-list{display:flex;flex-direction:column;gap:0}
-.cbf-item{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 4px;
-  font-size:13px;color:var(--text-secondary);
-  cursor:pointer;
-  border-radius:6px;
-  transition:background 0.12s,color 0.12s;
-  user-select:none;
-}
-.cbf-item:hover{background:var(--bg-surface);color:var(--text-primary)}
-.cbf-item input[type=checkbox]{
-  width:15px;height:15px;flex-shrink:0;
-  accent-color:var(--green);
-  cursor:pointer;
-  border-radius:4px;
-}
-.cbf-item:has(input:checked){color:var(--text-primary);font-weight:500}
 
 /* ── 우측 메인 콘텐츠 ── */
 .main-content{min-width:0}
@@ -1174,3 +1145,86 @@ body.dark .detail-save-btn:hover{background:#3a3aee}
 body.dark .de-input{background:rgba(255,255,255,0.06);border-color:rgba(255,255,255,0.12);color:var(--text-primary)}
 body.dark .de-input:focus{border-color:rgba(77,77,255,0.7)}
 body.dark .de-input option{background:#1A1A35;color:#E8EDF5}
+
+/* ── 기능 네비게이션 바 ── */
+.feature-nav-bar{
+  background:var(--bg-card);
+  border-bottom:1px solid var(--border);
+  box-shadow:var(--shadow-card);
+}
+
+.feature-nav-card{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;
+  text-decoration:none;
+  color:var(--text-primary);
+  border-right:1px solid var(--border);
+  transition:background .15s,color .15s;
+  position:relative;
+}
+.feature-nav-card:last-child{border-right:none}
+.feature-nav-card:hover{background:var(--bg-surface)}
+.feature-nav-card:hover .fnc-title{color:var(--green)}
+
+.fnc-text{flex:1;min-width:0}
+.fnc-title{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:1px;transition:color .15s}
+.fnc-sub{font-size:11px;color:var(--text-hint)}
+.fnc-arrow{color:var(--text-hint);flex-shrink:0;transition:transform .15s}
+.feature-nav-card:hover .fnc-arrow{transform:translateX(3px);color:var(--green)}
+@media(max-width:700px){
+  .feature-nav-inner{grid-template-columns:repeat(2,1fr)}
+  .feature-nav-card{border-right:1px solid var(--border);border-bottom:1px solid var(--border)}
+  .feature-nav-card:nth-child(2n){border-right:none}
+}
+
+/* ── 드롭다운 세부 필터 ── */
+.dd-filter-group{margin-bottom:10px}
+.dd-filter-label{display:block;font-size:10px;font-weight:700;color:var(--text-hint);letter-spacing:.6px;text-transform:uppercase;margin-bottom:5px}
+.dd-select-wrap{position:relative}
+.dd-select{
+  width:100%;padding:9px 32px 9px 12px;
+  border:1.5px solid var(--border);border-radius:var(--radius-md);
+  background:var(--bg-surface);color:var(--text-primary);
+  font-size:13px;font-family:inherit;
+  appearance:none;-webkit-appearance:none;
+  cursor:pointer;outline:none;
+  transition:border-color .15s,background .15s;
+  line-height:1.4;
+}
+.dd-select:hover{border-color:rgba(30,168,122,0.3)}
+.dd-select:focus{border-color:var(--green);background:var(--bg-card)}
+.dd-select option{background:var(--bg-card);color:var(--text-primary)}
+.dd-caret{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  pointer-events:none;color:var(--text-hint);
+}
+body.dark .dd-select{background:var(--bg-surface);border-color:var(--border)}
+body.dark .dd-select:focus{background:var(--bg-card)}
+
+/* feature-nav-bar: 3컬럼으로 */
+.feature-nav-inner{
+  max-width:1320px;margin:0 auto;
+  padding:0 2rem;
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:0;
+}
+
+.fnc-icon{
+  width:36px;height:36px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:8px;background:var(--green-light,rgba(30,168,122,0.1));
+  color:var(--green);
+}
+
+/* optgroup 구분선 스타일 */
+.dd-select optgroup{
+  font-size:10px;font-weight:700;
+  color:var(--text-hint);
+  letter-spacing:.4px;
+}
+.dd-select option{
+  font-size:13px;
+  padding:3px 0;
+  color:var(--text-primary);
+}

@@ -405,44 +405,39 @@ function initDropdowns(){
 }
 
 /* ── 필터링 ── */
+/* ── 필터 헬퍼 ── */
+function _locMatch(loc, filter){
+  if(!filter) return true;
+  if(!loc) return false;
+  const l=loc.trim();
+  const parts=filter.trim().split(' ');
+  // "서울 강남" → 서울 포함 AND 강남 포함
+  if(parts.length===2) return l.includes(parts[0])&&l.includes(parts[1]);
+  return l.includes(parts[0])||l.startsWith(parts[0]);
+}
+function _roleMatch(role, filter){
+  if(!filter) return true;
+  if(!role) return false;
+  const r=role.toLowerCase(), f=filter.toLowerCase();
+  return r.includes(f)||f.split(/[·\s]+/).some(p=>p.length>1&&r.includes(p));
+}
 function getFiltered(){
-  const ft=document.getElementById('ft')?.value||'';
+  const fj  =document.getElementById('fj')?.value||'';
+  const fi  =document.getElementById('fi')?.value||'';
+  const fs  =document.getElementById('fs')?.value||'';
+  const floc=document.getElementById('floc')?.value||'';
+  const fexp=document.getElementById('fexp')?.value||'';
+  const ft  =document.getElementById('ft')?.value||'';
   return JOBS.filter(j=>{
-    if(!matchesGlobal(j))return false;
-    if(!matchesKw(j))return false;
-    if(!matchesSalary(j))return false;
-    // 직무
-    if(!_cbRole.all){
-      const roleMatch=_cbRole.vals.some(v=>j.role===v||j.role?.includes(v));
-      const etcMatch=_cbRole.etc&&(!j.role||!ROLE_FIXED_LIST.includes(j.role));
-      if(!roleMatch&&!etcMatch)return false;
-    }
-    // 업종
-    if(!_cbIndustry.all){
-      const indMatch=_cbIndustry.vals.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)||v.includes(j.industry)));
-      const etcMatch=_cbIndustry.etc&&(!j.industry||!INDUSTRY_FIXED_LIST.some(v=>j.industry===v||j.industry.includes(v)||v.includes(j.industry)));
-      if(!indMatch&&!etcMatch)return false;
-    }
-    // 기업 규모
-    if(!_cbScale.all&&_cbScale.vals.length>0){
-      if(!_cbScale.vals.includes(j.scale))return false;
-    }
-    // 지역
-    if(!_cbLoc.all){
-      const locMatch=_cbLoc.vals.some(v=>j.location&&(j.location===v||j.location.startsWith(v)));
-      const otherMatch=_cbLoc.others&&j.location&&!LOC_FIXED_LIST.some(v=>j.location===v||j.location.startsWith(v));
-      if(!locMatch&&!otherMatch)return false;
-    }
-    // 경력
-    if(!_cbExp.all&&_cbExp.vals.length>0){
-      const b=expBadge(j.experience);
-      const expMatch=_cbExp.vals.some(v=>{
-        if(v==='경력') return b==='경력';
-        return b===v;
-      });
-      if(!expMatch)return false;
-    }
-    if(ft&&j.jobType!==ft)return false;
+    if(!matchesGlobal(j)) return false;
+    if(!matchesKw(j))     return false;
+    if(!matchesSalary(j)) return false;
+    if(!_roleMatch(j.role, fj))  return false;
+    if(fi && !(j.industry&&(j.industry.includes(fi)||fi.includes(j.industry)))) return false;
+    if(fs && j.scale!==fs)       return false;
+    if(!_locMatch(j.location, floc)) return false;
+    if(fexp){ const b=expBadge(j.experience); if(fexp==='경력'){if(b!=='경력')return false;}else if(b!==fexp)return false; }
+    if(ft && j.jobType!==ft)     return false;
     return true;
   });
 }
@@ -974,12 +969,30 @@ function render(){
   }).join('');
 
   // ── 히어로 플로팅 카드 값 업데이트 ──
-  const heroTotalEl=document.getElementById('heroTotalVal');
-  const heroMatchEl=document.getElementById('heroMatchVal');
-  const heroUrgentEl=document.getElementById('heroUrgentVal');
-  if(heroTotalEl) heroTotalEl.textContent=ALL_JOBS.length||'—';
-  if(heroMatchEl) heroMatchEl.textContent=all.length||'—';
-  if(heroUrgentEl) heroUrgentEl.textContent=urgentList.length||'—';
+  const heroNewEl=document.getElementById('heroNewVal');
+  const heroLocEl=document.getElementById('heroLocVal');
+  const heroStartupEl=document.getElementById('heroStartupVal');
+  if(heroNewEl||heroLocEl||heroStartupEl){
+    // 이번 주 신규 (7일 이내 등록)
+    const weekAgo=new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+    const weekAgoStr=weekAgo.toISOString().slice(0,10);
+    const newThisWeek=JOBS.filter(j=>(j.createdAt||'')>=weekAgoStr).length;
+    if(heroNewEl) heroNewEl.textContent=newThisWeek>0?'+'+newThisWeek:'—';
+
+    // 인기 지역 1위
+    const locCount={};
+    JOBS.forEach(j=>{
+      const loc=(j.location||'').split(/[\s,]/)[0].trim();
+      if(loc&&loc!=='미정'&&loc!=='재택'&&loc.length>1) locCount[loc]=(locCount[loc]||0)+1;
+    });
+    const topLoc=Object.entries(locCount).sort((a,b)=>b[1]-a[1])[0];
+    if(heroLocEl) heroLocEl.textContent=topLoc?topLoc[0]:'—';
+
+    // 스타트업 비율
+    const startupCount=JOBS.filter(j=>j.scale==='startup').length;
+    const startupPct=JOBS.length>0?Math.round(startupCount/JOBS.length*100):0;
+    if(heroStartupEl) heroStartupEl.textContent=startupPct>0?startupPct+'%':'—';
+  }
 
   // ── 오늘의 추천 공고 ──
   renderTodaySection(all);
@@ -1039,10 +1052,20 @@ function render(){
   document.getElementById('mainList').innerHTML=html;
 
   // 필터 초기화 버튼 — 하나라도 활성 상태면 표시
+  const _fj=document.getElementById('fj')?.value||'';
+  const _fi=document.getElementById('fi')?.value||'';
+  const _fs=document.getElementById('fs')?.value||'';
+  const _floc=document.getElementById('floc')?.value||'';
+  const _fexp=document.getElementById('fexp')?.value||'';
   const _ft=document.getElementById('ft')?.value||'';
   const _isFiltered = selKw.size>0 || globalSearchQ || salaryMinFilter>0
     || urgentFilter || closedFilter
-    || !_cbRole.all || !_cbIndustry.all || !_cbScale.all || !_cbLoc.all || !_cbExp.all || !!_ft;
+    || !!(document.getElementById('fj')?.value)
+    || !!(document.getElementById('fi')?.value)
+    || !!(document.getElementById('fs')?.value)
+    || !!(document.getElementById('floc')?.value)
+    || !!(document.getElementById('fexp')?.value)
+    || !!(document.getElementById('ft')?.value);
   const resetBtn=document.getElementById('filterResetBtn');
   if(resetBtn) resetBtn.style.display=_isFiltered?'flex':'none';
 
@@ -1088,20 +1111,8 @@ function resetAllFilters(){
   ['fj','fi','fs','floc','ft','fexp'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
-  // 체크박스 초기화
-  document.querySelectorAll('.cbf-item input[type=checkbox]').forEach(cb=>{ cb.checked=cb.value===''; });
-  ['fj-all','fi-all','fs-all','floc-all','fexp-all'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=true;});
-  ['fj-ds','fj-de','fj-ai','fj-sw','fj-med','fj-etc',
-   'fi-it','fi-bio','fi-med','fi-fin','fi-etc',
-   'fs-large','fs-mid','fs-startup','fs-public',
-   'floc-seoul','floc-gyeonggi','floc-incheon','floc-busan','floc-daejeon','floc-daegu','floc-others',
-   'fexp-new','fexp-both','fexp-exp'].forEach(id=>{const el=document.getElementById(id);if(el)el.checked=false;});
-  // 상태 초기화
-  _cbRole={all:true,vals:[],etc:false};
-  _cbIndustry={all:true,vals:[],etc:false};
-  _cbScale={all:true,vals:[]};
-  _cbLoc={all:true,vals:[],others:false};
-  _cbExp={all:true,vals:[]};
+  // 드롭다운 초기화
+  ['fj','fi','fs','floc','fexp','ft'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   // 연봉 슬라이더
   salaryMinFilter=0;
   const slider=document.getElementById('salarySlider');
@@ -1118,16 +1129,21 @@ function resetAllFilters(){
 
 // 마감 포함 필터링 (ALL_JOBS 기준)
 function getFilteredAll(){
-  const ft=document.getElementById('ft')?.value||'';
+  const fj  =document.getElementById('fj')?.value||'';
+  const fi  =document.getElementById('fi')?.value||'';
+  const fs  =document.getElementById('fs')?.value||'';
+  const floc=document.getElementById('floc')?.value||'';
+  const fexp=document.getElementById('fexp')?.value||'';
+  const ft  =document.getElementById('ft')?.value||'';
   return ALL_JOBS.filter(j=>{
-    if(!matchesGlobal(j))return false;
-    if(!matchesKw(j))return false;
-    if(!_cbRole.all){const rm=_cbRole.vals.some(v=>j.role===v||j.role?.includes(v));const em=_cbRole.etc&&!ROLE_FIXED_LIST.includes(j.role);if(!rm&&!em)return false;}
-    if(!_cbIndustry.all){const im=_cbIndustry.vals.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)));const em=_cbIndustry.etc&&!INDUSTRY_FIXED_LIST.some(v=>j.industry&&(j.industry===v||j.industry.includes(v)));if(!im&&!em)return false;}
-    if(fs&&j.scale!==fs)return false;
-    if(floc&&j.location!==floc)return false;
-    if(ft&&j.jobType!==ft)return false;
-    if(fexp){const b=expBadge(j.experience);if(fexp==='경력'){if(b!=='경력')return false;}else{if(b!==fexp)return false;}}
+    if(!matchesGlobal(j)) return false;
+    if(!matchesKw(j))     return false;
+    if(!_roleMatch(j.role, fj))  return false;
+    if(fi && !(j.industry&&(j.industry.includes(fi)||fi.includes(j.industry)))) return false;
+    if(fs && j.scale!==fs)       return false;
+    if(!_locMatch(j.location, floc)) return false;
+    if(fexp){ const b=expBadge(j.experience); if(fexp==='경력'){if(b!=='경력')return false;}else if(b!==fexp)return false; }
+    if(ft && j.jobType!==ft)     return false;
     return true;
   });
 }
@@ -2136,8 +2152,7 @@ async function submitFeedback(){
     if(raw) addFbKw(raw);
     if(!_fbKws.length){errEl.textContent='키워드를 하나 이상 입력해주세요.';errEl.style.display='block';return;}
     const note=document.getElementById('feedbackKwNote')?.value.trim();
-    text=`[키워드 추가 요청] ${_fbKws.join(', ')}${note?'
-메모: '+note:''}`;
+    text=`[키워드 추가 요청] ${_fbKws.join(', ')}${note?' / 메모: '+note:''}`;
   }
 
   errEl.style.display='none';
@@ -2189,12 +2204,33 @@ let _editingNoticeId=null;
 let _noticeFiles=[]; // {name, dataUrl, type}
 const NOTICE_SEEN_KEY='ajs_notice_seen';
 
+// 공지 타입 → 배지 스타일/라벨 반환
+function getNoticeBadge(nType, size){
+  const s=(size==='lg')?'font-size:12px;padding:3px 10px':'font-size:10px;padding:2px 7px';
+  const base='font-weight:600;border-radius:20px;letter-spacing:0.3px;'+s;
+  const map={
+    '긴급':    {style:base+';background:rgba(184,64,64,0.12);color:var(--red)',    label:'🚨 긴급'},
+    '점검':    {style:base+';background:rgba(180,120,0,0.12);color:#b47800',       label:'🔧 점검'},
+    '업데이트':{style:base+';background:rgba(30,130,80,0.12);color:#1e8250',      label:'🔄 업데이트'},
+    '공지':    {style:base+';background:var(--navy-muted);color:var(--navy-text)', label:'📢 공지'},
+  };
+  var t=map[nType]||map['공지'];
+  return '<span style="'+t.style+'">'+t.label+'</span>';
+}
 function onNoticeTypeChange(){
-  const isUrg=document.getElementById('nTypeUrg').checked;
-  document.getElementById('nTypeAnLabel').style.borderColor=isUrg?'var(--border)':'var(--navy-light)';
-  document.getElementById('nTypeAnLabel').style.background=isUrg?'':'var(--navy-muted)';
-  document.getElementById('nTypeUrgLabel').style.borderColor=isUrg?'var(--red)':'var(--border)';
-  document.getElementById('nTypeUrgLabel').style.background=isUrg?'rgba(184,64,64,0.08)':'';
+  const val=document.querySelector('input[name="nType"]:checked')?.value||'공지';
+  ['nTypeAnLabel','nTypeUpdateLabel','nTypeCheckLabel','nTypeUrgLabel'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.borderColor='var(--border)';el.style.background='';}
+  });
+  const activeMap={
+    '공지':     {id:'nTypeAnLabel',     border:'var(--navy-light)', bg:'var(--navy-muted)'},
+    '업데이트': {id:'nTypeUpdateLabel', border:'#1e8250',           bg:'rgba(30,130,80,0.08)'},
+    '점검':     {id:'nTypeCheckLabel',  border:'#b47800',           bg:'rgba(180,120,0,0.08)'},
+    '긴급':     {id:'nTypeUrgLabel',    border:'var(--red)',        bg:'rgba(184,64,64,0.08)'},
+  };
+  const active=activeMap[val];
+  if(active){const el=document.getElementById(active.id);if(el){el.style.borderColor=active.border;el.style.background=active.bg;}}
 }
 function updateNoticeCharCount(){
   const len=document.getElementById('nContent').value.length;
@@ -2237,7 +2273,12 @@ function initNoticeSubscription(){
 }
 
 function openNoticeViewer(){
-  document.getElementById('noticeViewerModal').classList.add('open');
+  const modal=document.getElementById('noticeViewerModal');
+  if(modal.classList.contains('open')){
+    closeNoticeViewer();
+    return;
+  }
+  modal.classList.add('open');
   loadNoticeViewerList();
 }
 function closeNoticeViewer(){
@@ -2254,15 +2295,18 @@ async function loadNoticeViewerList(){
     save(NOTICE_SEEN_KEY,published[0].id);
     document.getElementById('noticeDot').style.display='none';
     el.innerHTML=published.map(n=>{
-      const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
+      const nType=n.type||n.noticeType||'공지';
+      const isUrg=nType==='긴급';
+      const borderColor=nType==='긴급'?'rgba(184,64,64,0.25)':nType==='점검'?'rgba(180,120,0,0.25)':nType==='업데이트'?'rgba(30,130,80,0.25)':'var(--border)';
+      const titleColor=nType==='긴급'?'var(--red)':nType==='점검'?'#b47800':nType==='업데이트'?'#1e8250':'var(--text-primary)';
       const dt=new Date(n.createdAt);
       const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
       const preview=n.content.replace(/\n/g,' ').trim();
       const short=preview.length>55?preview.slice(0,55)+'…':preview;
-      return `<div onclick="openNoticeDetail('${n.id}')" style="cursor:pointer;border-radius:var(--radius-md);padding:14px 16px;background:var(--bg-surface);transition:background 0.15s,box-shadow 0.15s;border:1px solid ${isUrg?'rgba(184,64,64,0.25)':'var(--border)'}" onmouseover="this.style.background='var(--bg-card)';this.style.boxShadow='var(--shadow-hover)'" onmouseout="this.style.background='var(--bg-surface)';this.style.boxShadow='none'">
+      return `<div onclick="openNoticeDetail('${n.id}')" style="cursor:pointer;border-radius:var(--radius-md);padding:14px 16px;background:var(--bg-surface);transition:background 0.15s,box-shadow 0.15s;border:1px solid ${borderColor}" onmouseover="this.style.background='var(--bg-card)';this.style.boxShadow='var(--shadow-hover)'" onmouseout="this.style.background='var(--bg-surface)';this.style.boxShadow='none'">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
-          <span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;letter-spacing:0.3px;${isUrg?'background:rgba(184,64,64,0.12);color:var(--red)':'background:var(--navy-muted);color:var(--navy-text)'}">${isUrg?'긴급':'안내'}</span>
-          <span style="font-size:14px;font-weight:600;color:${isUrg?'var(--red)':'var(--text-primary)'};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title.replace(/</g,'&lt;')}</span>
+          ${getNoticeBadge(nType,'sm')}
+          <span style="font-size:14px;font-weight:600;color:${titleColor};flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title.replace(/</g,'&lt;')}</span>
           <span style="font-size:11px;color:var(--text-hint);flex-shrink:0">${dateStr}</span>
         </div>
         <div style="font-size:12px;color:var(--text-secondary);padding-left:2px">${short.replace(/</g,'&lt;')}</div>
@@ -2273,21 +2317,23 @@ async function loadNoticeViewerList(){
 
 let _noticeDetailCache=[];
 async function openNoticeDetail(id){
+  closeNoticeViewer();
   if(!_noticeDetailCache.length){
     const notices=await window._fb.getNotices();
     _noticeDetailCache=notices.filter(n=>n.published);
   }
   const n=_noticeDetailCache.find(x=>x.id===id);
   if(!n)return;
-  const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
+  const nType=n.type||n.noticeType||'공지';
+  const titleColor=nType==='긴급'?'var(--red)':nType==='점검'?'#b47800':nType==='업데이트'?'#1e8250':'var(--text-primary)';
   const dt=new Date(n.createdAt);
   const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
   document.getElementById('noticeDetailContent').innerHTML=`
     <div style="margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        ${isUrg?'<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:rgba(184,64,64,0.12);color:var(--red);font-weight:600">🚨 긴급</span>':'<span style="font-size:12px;padding:3px 10px;border-radius:20px;background:var(--navy-muted);color:var(--navy-text)">📢 안내</span>'}
+        ${getNoticeBadge(nType,'lg')}
       </div>
-      <h2 style="font-size:20px;font-weight:700;color:${isUrg?'var(--red)':'var(--text-primary)'};line-height:1.4;margin-bottom:8px">${n.title.replace(/</g,'&lt;')}</h2>
+      <h2 style="font-size:20px;font-weight:700;color:${titleColor};line-height:1.4;margin-bottom:8px">${n.title.replace(/</g,'&lt;')}</h2>
       <div style="font-size:12px;color:var(--text-hint)">${dateStr}</div>
     </div>
     <div style="font-size:14px;color:var(--text-primary);line-height:1.9;white-space:pre-wrap;margin-bottom:24px">${n.content.replace(/</g,'&lt;')}</div>
@@ -2330,7 +2376,7 @@ function openNoticeForm(id){
     document.getElementById('nTitle').value='';
     document.getElementById('nContent').value='';
     document.getElementById('nPublish').checked=true;
-    document.getElementById('nTypeAn').checked=true;
+    document.querySelector('input[name="nType"][value="공지"]').checked=true;
     updateNoticeCharCount();
     onNoticeTypeChange();
     document.getElementById('noticeFormLabel').textContent='새 공지 작성';
@@ -2375,13 +2421,15 @@ async function loadNoticeAdminList(){
     const notices=await window._fb.getNotices();
     if(!notices.length){el.innerHTML='<div style="text-align:center;padding:3rem;color:var(--text-hint);font-size:14px">등록된 공지가 없습니다.</div>';return;}
     el.innerHTML=notices.map(n=>{
-      const nType=n.type||n.noticeType||'안내'; const isUrg=nType==='긴급';
+      const nType=n.type||n.noticeType||'공지';
+      const borderLeft=nType==='긴급'?'var(--red)':nType==='점검'?'#b47800':nType==='업데이트'?'#1e8250':'var(--navy)';
+      const borderSide=nType==='긴급'?'rgba(184,64,64,0.3)':nType==='점검'?'rgba(180,120,0,0.3)':nType==='업데이트'?'rgba(30,130,80,0.3)':'var(--border)';
       const dt=new Date(n.createdAt);
       const dateStr=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`;
-      return `<div style="background:var(--bg-card);border:1px solid ${isUrg?'rgba(184,64,64,0.3)':'var(--border)'};border-left:3px solid ${isUrg?'var(--red)':'var(--navy)'};border-radius:var(--radius-md);padding:14px 16px">
+      return `<div style="background:var(--bg-card);border:1px solid ${borderSide};border-left:3px solid ${borderLeft};border-radius:var(--radius-md);padding:14px 16px">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:11px;padding:2px 8px;border-radius:20px;${isUrg?'background:rgba(184,64,64,0.12);color:var(--red)':'background:var(--navy-muted);color:var(--navy-text)'}">${isUrg?'🚨 긴급':'📢 안내'}</span>
+            ${getNoticeBadge(nType,'sm')}
             <span style="font-size:14px;font-weight:600;color:${isUrg?'var(--red)':'var(--text-primary)'}">${n.title.replace(/</g,'&lt;')}</span>
             <span style="font-size:11px;padding:2px 8px;border-radius:20px;${n.published?'background:#EAF5EE;color:#1A4A2E':'background:var(--bg-surface);color:var(--text-hint)'}">${n.published?'게시중':'미게시'}</span>
           </div>
@@ -2408,7 +2456,9 @@ async function editNotice(id){
   document.getElementById('nContent').value=n.content;
   updateNoticeCharCount();
   document.getElementById('nPublish').checked=n.published;
-  if(n.noticeType==='긴급')document.getElementById('nTypeUrg').checked=true;
+  const noticeTypeVal=n.noticeType||'공지';
+  const radioEl=document.querySelector(`input[name="nType"][value="${noticeTypeVal}"]`);
+  if(radioEl)radioEl.checked=true;
   else document.getElementById('nTypeAn').checked=true;
   onNoticeTypeChange();
   document.getElementById('noticeFormLabel').textContent='공지 수정';

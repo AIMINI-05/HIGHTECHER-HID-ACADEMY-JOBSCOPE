@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>내 프로필 — Academy Job Scope</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="js/config.js"></script>
+<script type="module" src="js/firebase.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F4F4F0;--bg-card:#fff;--bg-surface:#F0EFE9;--text-primary:#111116;--text-secondary:#5A5A68;--text-hint:#9898A8;--border:rgba(17,17,22,0.09);--navy:#0B1D35;--navy-light:#1A3560;--green:#1EA87A;--green-light:rgba(30,168,122,0.1);--red:#E05252;--orange:#F59E3A;--blue:#3B82F6;--radius-md:10px;--radius-lg:14px;--shadow-card:0 1px 4px rgba(0,0,0,0.06)}
+body{font-family:'Pretendard','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-primary);min-height:100vh}
+body.dark{--bg:#080E1A;--bg-card:#0F1929;--bg-surface:#162035;--text-primary:#E2E8F4;--text-secondary:#7A85A0;--text-hint:#445068;--border:rgba(56,217,169,0.12)}
+header{background:#0B1D35;border-bottom:1px solid rgba(255,255,255,0.07);padding:0 2rem;position:sticky;top:0;z-index:100}
+.header-inner{max-width:1100px;margin:0 auto;height:60px;display:flex;align-items:center;justify-content:space-between}
+.logo-area{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#38D9A9,#1EA87A);display:flex;align-items:center;justify-content:center}
+.logo-mark img{width:65%;height:65%;object-fit:contain;filter:brightness(10)}
+.logo-text{font-size:15px;font-weight:700;color:#fff}
+.header-nav{display:flex;align-items:center;gap:8px}
+.page-tabs{display:flex;gap:4px}
+.page-tab{padding:6px 14px;border:none;border-radius:20px;font-size:12px;font-weight:600;font-family:inherit;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);cursor:pointer;transition:all .15s;text-decoration:none}
+.page-tab.active,.page-tab:hover{background:rgba(56,217,169,0.2);color:#38D9A9}
+.nav-back{display:flex;align-items:center;gap:6px;padding:7px 14px;background:rgba(255,255,255,0.08);border:none;border-radius:8px;color:rgba(255,255,255,0.7);font-size:13px;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .15s}
+.nav-back:hover{background:rgba(255,255,255,0.14);color:#fff}
+
+.page-content{max-width:1100px;margin:0 auto;padding:2rem 2rem 4rem}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.page-head-left{}
+.page-eyebrow{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--green);text-transform:uppercase;margin-bottom:6px}
+.page-title{font-size:22px;font-weight:800;letter-spacing:-.5px;margin-bottom:4px}
+.page-sub{font-size:12px;color:var(--text-hint)}
+.head-actions{display:flex;gap:8px}
+.btn-secondary{display:flex;align-items:center;gap:6px;padding:9px 16px;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);color:var(--text-secondary);font-size:13px;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-secondary:hover{border-color:var(--green);color:var(--green)}
+.btn-primary{display:flex;align-items:center;gap:6px;padding:9px 18px;border:none;border-radius:8px;background:var(--green);color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:all .15s}
+.btn-primary:hover{opacity:.9}
+
+/* Two col */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start}
+@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;box-shadow:var(--shadow-card);margin-bottom:16px}
+.card-title{font-size:13px;font-weight:700;color:var(--text-secondary);letter-spacing:.3px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.card-title svg{flex-shrink:0}
+
+/* Form */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg label{font-size:11px;font-weight:600;color:var(--text-hint);letter-spacing:.4px;text-transform:uppercase}
+.fg input,.fg select{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.fg input:focus,.fg select:focus{border-color:var(--green)}
+
+/* Skills */
+.skill-list{display:flex;flex-direction:column;gap:8px}
+.skill-item{display:flex;align-items:center;gap:10px}
+.skill-name{font-size:13px;font-weight:500;color:var(--text-primary);min-width:100px}
+.skill-bar-wrap{flex:1;height:8px;background:var(--bg-surface);border-radius:4px;overflow:hidden;cursor:pointer;position:relative}
+.skill-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),#38D9A9);transition:width .4s ease}
+.skill-level{font-size:11px;font-weight:700;color:var(--text-hint);min-width:28px;text-align:right}
+.skill-del{background:none;border:none;cursor:pointer;color:var(--text-hint);font-size:14px;line-height:1;transition:color .15s;padding:2px}
+.skill-del:hover{color:var(--red)}
+.add-skill-row{display:flex;gap:8px;margin-top:10px}
+.add-skill-input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg-surface);color:var(--text-primary);font-size:13px;font-family:inherit;outline:none;transition:border-color .15s}
+.add-skill-input:focus{border-color:var(--green)}
+.add-skill-btn{padding:8px 14px;background:var(--green);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer}
+.level-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-surface);color:var(--text-primary);font-size:12px;font-family:inherit;outline:none}
+
+/* Projects */
+.project-item{background:var(--bg-surface);border-radius:8px;padding:12px 14px;margin-bottom:8px;position:relative}
+.project-title{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:2px}
+.project-meta{font-size:11px;color:var(--text-secondary);margin-bottom:6px}
+.project-tags{display:flex;gap:5px;flex-wrap:wrap}
+.project-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(30,168,122,0.1);color:var(--green);font-weight:600}
+.project-del{position:absolute;top:10px;right:10px;background:none;border:none;cursor:pointer;color:var(--text-hint);font-size:13px;transition:color .15s}
+.project-del:hover{color:var(--red)}
+
+/* Strength */
+.strength-score{font-size:52px;font-weight:800;color:var(--text-primary);letter-spacing:-2px;line-height:1}
+.strength-max{font-size:18px;color:var(--text-hint)}
+.strength-bar-wrap{height:8px;background:var(--bg-surface);border-radius:4px;overflow:hidden;margin:12px 0}
+.strength-bar{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--green),#38D9A9);transition:width .8s ease}
+.strength-sub{font-size:12px;color:var(--green);font-weight:600}
+
+/* Improvements */
+.improve-item{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)}
+.improve-item:last-child{border-bottom:none}
+.improve-label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary)}
+.improve-check{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border);flex-shrink:0}
+.improve-check.done{background:var(--green);border-color:var(--green)}
+.improve-pts{font-size:11px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(30,168,122,0.1);color:var(--green)}
+
+/* Match */
+.match-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.match-item:last-child{border-bottom:none}
+.match-company{flex:1;font-size:13px;font-weight:600;color:var(--text-primary)}
+.match-bar-wrap{flex:2;height:6px;background:var(--bg-surface);border-radius:3px;overflow:hidden}
+.match-bar{height:100%;border-radius:3px;background:var(--green);transition:width .6s ease}
+.match-pct{font-size:12px;font-weight:700;color:var(--green);min-width:32px;text-align:right}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:#0B1D35;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;box-shadow:0 8px 32px rgba(0,0,0,0.3);transform:translateY(20px);opacity:0;transition:all .3s;z-index:999;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-inner">
+    <a class="logo-area" href="index.html">
+      <div class="logo-mark"><img src="logo.png" alt="logo"></div>
+      <span class="logo-text">Academy Job Scope</span>
+    </a>
+    <div class="header-nav">
+      <div class="page-tabs">
+        <a href="ask.html" class="page-tab">🤖 AI Ask</a>
+        <span class="page-tab active">👤 내 프로필</span>
+        <a href="calendar.html" class="page-tab">📅 캘린더</a>
+        <a href="insights.html" class="page-tab">📊 Insights</a>
+      </div>
+      <a href="index.html" class="nav-back">← 공고 목록</a>
+    </div>
+  </div>
+</header>
+
+<div class="page-content">
+  <div class="page-head">
+    <div class="page-head-left">
+      <div class="page-eyebrow">MY PROFILE</div>
+      <div class="page-title">내 프로필 · 매칭 정확도 높이기</div>
+      <div class="page-sub">스킬/경험을 등록할수록 매칭 정확도가 올라가요 (비공개 · 회사에 공유되지 않음)</div>
+    </div>
+    <div class="head-actions">
+      <button class="btn-secondary" id="exportBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        이력서 PDF 업로드
+      </button>
+      <button class="btn-primary" id="saveBtn">저장</button>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <!-- 기본 정보 -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          기본 정보
+        </div>
+        <div class="form-grid">
+          <div class="fg"><label>이름</label><input type="text" id="pName" placeholder="이름"></div>
+          <div class="fg"><label>수강 과정</label>
+            <select id="pCourse">
+              <option value="">선택</option>
+              <option value="데이터 사이언스 8기">데이터 사이언스 8기</option>
+              <option value="AI 엔지니어링 7기">AI 엔지니어링 7기</option>
+              <option value="데이터 분석 9기">데이터 분석 9기</option>
+              <option value="ML/DL 6기">ML/DL 6기</option>
+            </select>
+          </div>
+          <div class="fg"><label>경력 구분</label>
+            <select id="pExp">
+              <option value="">선택</option>
+              <option value="신입 (부트캠프 수료)">신입 (부트캠프 수료)</option>
+              <option value="경력 1-3년">경력 1-3년</option>
+              <option value="경력 3-5년">경력 3-5년</option>
+              <option value="경력 5년+">경력 5년+</option>
+            </select>
+          </div>
+          <div class="fg"><label>선호 지역</label>
+            <select id="pLoc">
+              <option value="">선택</option>
+              <option value="서울 / 판교 / 원격">서울 / 판교 / 원격</option>
+              <option value="서울">서울</option>
+              <option value="경기 (판교/수원)">경기 (판교/수원)</option>
+              <option value="원격">원격</option>
+              <option value="전국">전국</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 스킬 -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          스킬 레벨 <span style="font-size:10px;font-weight:400;color:var(--text-hint)">1-5 자가 평가</span>
+        </div>
+        <div class="skill-list" id="skillList"></div>
+        <div class="add-skill-row">
+          <input class="add-skill-input" id="newSkillInput" placeholder="스킬명 입력 (예: React)" onkeydown="if(event.key==='Enter')addSkill()">
+          <select class="level-select" id="newSkillLevel">
+            <option value="1">Lv.1</option><option value="2">Lv.2</option>
+            <option value="3" selected>Lv.3</option><option value="4">Lv.4</option><option value="5">Lv.5</option>
+          </select>
+          <button class="add-skill-btn" onclick="addSkill()">+ 스킬 추가</button>
+        </div>
+      </div>
+
+      <!-- 프로젝트 -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          프로젝트 · 경험
+        </div>
+        <div id="projectList"></div>
+        <button class="btn-secondary" style="width:100%;justify-content:center;margin-top:4px" onclick="addProject()">+ 프로젝트 추가</button>
+      </div>
+    </div>
+
+    <div>
+      <!-- Strength -->
+      <div class="card">
+        <div class="card-title">PROFILE STRENGTH</div>
+        <div class="strength-score" id="strengthScore">0<span class="strength-max"> / 100</span></div>
+        <div class="strength-bar-wrap"><div class="strength-bar" id="strengthBar" style="width:0%"></div></div>
+        <div class="strength-sub" id="strengthSub"></div>
+      </div>
+
+      <!-- 개선 제안 -->
+      <div class="card">
+        <div class="card-title">🎯 개선 제안</div>
+        <div id="improveList"></div>
+      </div>
+
+      <!-- 현재 매칭 -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          현재 프로필 기준 매칭
+          <span style="font-size:10px;font-weight:400;color:var(--text-hint)">스킬/도메인 반영 시 평균 매칭도</span>
+        </div>
+        <div id="matchList"><div style="color:var(--text-hint);font-size:13px;text-align:center;padding:1rem">공고 불러오는 중…</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+function waitForFb(cb){ if(window._fb) cb(); else window.addEventListener('firebase-ready',cb,{once:true}); }
+
+const SK='ajs_resume';
+let profile=JSON.parse(localStorage.getItem(SK)||'{"name":"","course":"","exp":"","loc":"","skills":[],"projects":[]}');
+let JOBS=[];
+
+const PREDEFINED_SKILLS=['Python','SQL','PyTorch','Spark','LLM','헬스케어','MLOps','딥러닝','Pandas','NumPy','데이터 분석'];
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+function save(){
+  profile.name=document.getElementById('pName').value;
+  profile.course=document.getElementById('pCourse').value;
+  profile.exp=document.getElementById('pExp').value;
+  profile.loc=document.getElementById('pLoc').value;
+  localStorage.setItem(SK,JSON.stringify(profile));
+  toast('✅ 저장되었습니다');
+  calcStrength();
+  calcMatch();
+}
+
+function load(){
+  document.getElementById('pName').value=profile.name||'';
+  document.getElementById('pCourse').value=profile.course||'';
+  document.getElementById('pExp').value=profile.exp||'';
+  document.getElementById('pLoc').value=profile.loc||'';
+  if(!profile.skills||!profile.skills.length){
+    profile.skills=[{name:'Python',level:4},{name:'SQL',level:4},{name:'Pandas / NumPy',level:4},{name:'PyTorch',level:2},{name:'Spark',level:2},{name:'헬스케어 도메인',level:3}];
+  }
+  renderSkills();
+  renderProjects();
+  calcStrength();
+  calcMatch();
+}
+
+function renderSkills(){
+  const max=5;
+  document.getElementById('skillList').innerHTML=profile.skills.map((s,i)=>`
+    <div class="skill-item">
+      <div class="skill-name">${s.name}</div>
+      <div class="skill-bar-wrap" onclick="cycleLevel(${i})" title="클릭해서 레벨 조정">
+        <div class="skill-bar" style="width:${s.level/max*100}%"></div>
+      </div>
+      <div class="skill-level">Lv.${s.level}</div>
+      <button class="skill-del" onclick="removeSkill(${i})">×</button>
+    </div>`).join('');
+}
+
+window.cycleLevel=function(i){
+  profile.skills[i].level=(profile.skills[i].level%5)+1;
+  renderSkills();calcStrength();
+}
+window.removeSkill=function(i){profile.skills.splice(i,1);renderSkills();calcStrength();}
+window.addSkill=function(){
+  const name=document.getElementById('newSkillInput').value.trim();
+  const level=parseInt(document.getElementById('newSkillLevel').value);
+  if(!name) return;
+  profile.skills.push({name,level});
+  document.getElementById('newSkillInput').value='';
+  renderSkills();calcStrength();
+}
+
+function renderProjects(){
+  if(!profile.projects) profile.projects=[];
+  document.getElementById('projectList').innerHTML=profile.projects.map((p,i)=>`
+    <div class="project-item">
+      <div class="project-title">${p.title}</div>
+      <div class="project-meta">${p.org} · ${p.date}</div>
+      <div class="project-tags">${(p.tags||[]).map(t=>`<span class="project-tag">${t}</span>`).join('')}</div>
+      <button class="project-del" onclick="removeProject(${i})">×</button>
+    </div>`).join('');
+}
+
+window.removeProject=function(i){profile.projects.splice(i,1);renderProjects();calcStrength();}
+window.addProject=function(){
+  const title=prompt('프로젝트명');if(!title) return;
+  const org=prompt('소속/유형 (예: Oracle Academy 최종 프로젝트)')||'개인 프로젝트';
+  const date=prompt('날짜 (예: 2026.03)')||'';
+  const tagsRaw=prompt('기술 태그 (쉼표로 구분, 예: PyTorch,헬스케어)')||'';
+  const tags=tagsRaw.split(',').map(t=>t.trim()).filter(Boolean);
+  profile.projects.push({title,org,date,tags});
+  renderProjects();calcStrength();
+}
+
+function calcStrength(){
+  let score=0;
+  const tasks=[];
+  if(profile.name) score+=5; else tasks.push({label:'이름 입력',pts:5,done:false});
+  if(profile.course) score+=10; else tasks.push({label:'수강 과정 선택',pts:10,done:false});
+  if(profile.exp) score+=8; else tasks.push({label:'경력 구분 선택',pts:8,done:false});
+  if(profile.loc) score+=7; else tasks.push({label:'선호 지역 선택',pts:7,done:false});
+  if(profile.skills&&profile.skills.length>=3){score+=25;tasks.push({label:'스킬 3개+ 등록',pts:25,done:true});}
+  else tasks.push({label:`스킬 ${3-(profile.skills?.length||0)}개 더 추가`,pts:25,done:false});
+  if(profile.skills&&profile.skills.length>=6){score+=10;tasks.push({label:'스킬 6개+ 등록',pts:10,done:true});}
+  else if(!(profile.skills&&profile.skills.length>=3)) tasks.push({label:'스킬 6개+ 등록',pts:10,done:false});
+  if(profile.projects&&profile.projects.length>=1){score+=20;tasks.push({label:'프로젝트 1개 등록',pts:20,done:true});}
+  else tasks.push({label:'프로젝트 GitHub 링크',pts:20,done:false});
+  if(profile.projects&&profile.projects.length>=2){score+=15;}
+  tasks.push({label:'자격증 정보 등록',pts:8,done:false});
+  tasks.push({label:'영어 수준 등록',pts:5,done:false});
+  tasks.push({label:'포트폴리오 URL',pts:3,done:false});
+
+  const finalScore=Math.min(100,score);
+  document.getElementById('strengthScore').innerHTML=`${finalScore}<span class="strength-max"> / 100</span>`;
+  document.getElementById('strengthBar').style.width=finalScore+'%';
+  const nextPts=tasks.filter(t=>!t.done).slice(0,1)[0];
+  document.getElementById('strengthSub').textContent=nextPts?`프로젝트 1개 더, 자격증 등록 시 +${nextPts.pts}점`:'프로필 완성도가 높습니다!';
+
+  const improves=tasks.filter(t=>!t.done).slice(0,4);
+  document.getElementById('improveList').innerHTML=improves.map(t=>`
+    <div class="improve-item">
+      <span class="improve-label"><span class="improve-check"></span>${t.label}</span>
+      <span class="improve-pts">+${t.pts}점</span>
+    </div>`).join('')||'<div style="color:var(--text-hint);font-size:13px;text-align:center;padding:.5rem">완성 🎉</div>';
+}
+
+function calcMatch(){
+  if(!JOBS.length){return;}
+  const mySkills=(profile.skills||[]).map(s=>s.name.toLowerCase());
+  const myLoc=(profile.loc||'').toLowerCase();
+  const myExp=(profile.exp||'').toLowerCase();
+
+  const coScore={};
+  JOBS.forEach(j=>{
+    if(!j.company||j.company==='미정') return;
+    const txt=`${j.title||''} ${j.description||''} ${j.requirements||''}`.toLowerCase();
+    let s=0;
+    mySkills.forEach(sk=>{if(txt.includes(sk)) s+=15;});
+    if(myLoc&&j.location&&j.location.toLowerCase().includes(myLoc.split('/')[0].trim())) s+=10;
+    if(myExp.includes('신입')&&(txt.includes('신입')||txt.includes('무관'))) s+=10;
+    if(!coScore[j.company]) coScore[j.company]={score:0,cnt:0};
+    coScore[j.company].score+=s;
+    coScore[j.company].cnt++;
+  });
+  const top=Object.entries(coScore)
+    .map(([co,{score,cnt}])=>({co,avg:Math.min(99,Math.round(score/cnt))}))
+    .filter(x=>x.avg>0)
+    .sort((a,b)=>b.avg-a.avg).slice(0,5);
+
+  document.getElementById('matchList').innerHTML=top.map(({co,avg})=>`
+    <div class="match-item">
+      <div class="match-company">${co}</div>
+      <div class="match-bar-wrap"><div class="match-bar" style="width:${avg}%"></div></div>
+      <div class="match-pct">${avg}%</div>
+    </div>`).join('')||'<div style="color:var(--text-hint);font-size:13px;text-align:center;padding:1rem">스킬 등록 후 매칭 확인 가능</div>';
+}
+
+document.getElementById('saveBtn').onclick=save;
+document.getElementById('exportBtn').onclick=function(){
+  const input=document.createElement('input');input.type='file';input.accept='.pdf';
+  input.onchange=()=>toast('📄 PDF 업로드 기능은 준비 중입니다');
+  input.click();
+};
+
+waitForFb(()=>{window._fb.subscribe(jobs=>{JOBS=jobs;calcMatch();});});
+load();
+</script>
+</body>
+</html>
